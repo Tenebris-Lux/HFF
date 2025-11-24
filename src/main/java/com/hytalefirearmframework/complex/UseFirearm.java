@@ -1,4 +1,4 @@
-package hytaleGunFramework;
+package com.hytalefirearmframework.complex;
 
 // TODO: needs to be exchanged with the Hytale one
 import org.w3c.dom.events.Event; 

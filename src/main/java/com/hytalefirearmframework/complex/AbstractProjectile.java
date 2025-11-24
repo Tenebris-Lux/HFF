@@ -1,4 +1,9 @@
-package hytaleGunFramework;
+package com.hytalefirearmframework.complex;
+
+import java.io.File;
+import java.io.IOException;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 // TODO: imports for Hytale
 
@@ -13,5 +18,12 @@ public abstract class AbstractProjectile {
     public double getDamage(double distance){
         double falloff = distance / damageFalloff;
         return baseDamage / falloff;
+    }
+
+    protected AbstractProjectile(){}
+
+    public static <T extends AbstractProjectile> T jsonInit(String path, Class<T> type) throws IOException{
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(new File(path), type);
     }
 }

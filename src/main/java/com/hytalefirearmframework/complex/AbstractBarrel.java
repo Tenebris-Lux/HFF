@@ -1,4 +1,9 @@
-package hytaleGunFramework;
+package com.hytalefirearmframework.complex;
+
+import java.io.File;
+import java.io.IOException;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 // TODO: imports...
 
@@ -11,8 +16,11 @@ public abstract class AbstractBarrel {
     protected double coolOffSpeed;
     protected double coolOffDelay = 0.5;
 
-    public AbstractBarrel(String source){
-        // TODO: maybe read data from a JSON file
+    protected AbstractBarrel(){}
+
+    public static <T extends AbstractBarrel>T jsonInit(String path, Class<T> type) throws IOException{
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(new File(path), type);
     }
 
     public boolean getBroken(){

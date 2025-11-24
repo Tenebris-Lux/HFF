@@ -1,9 +1,13 @@
-package hytaleGunFramework;
+package com.hytalefirearmframework.complex;
 
-import java.util.Vector;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 import org.w3c.dom.events.Event;
 
-public abstract class AbstractGun implements UseFirearm {
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+public abstract class AbstractGun  /* extends HytaleRangedWeapon */ implements UseFirearm {
     protected FirearmCategory category;
     protected boolean twoHanded = true;
     protected double attackDelay = 1.0;
@@ -19,12 +23,15 @@ public abstract class AbstractGun implements UseFirearm {
     //protected Effect durabilityEffect = (e) -> System.out.println("Implement this");
     protected ReloadMethod reloadMethod;
     protected double reloadTime;
-    protected Vector<Event> reloadSteps;
+    protected List<Event> reloadSteps;
     protected int reloadCurrStep;
     protected double ammoCapacity;
 
-    public AbstractGun(String init){
-        // TODO: initialize gun from JSON
+    protected AbstractGun(){}
+
+    public static <T extends AbstractGun> T jsonInit(String path, Class<T> type) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readValue(new File(path), type);
     }
 
     public void onDurabilityChange(Event e){
@@ -34,6 +41,15 @@ public abstract class AbstractGun implements UseFirearm {
         }
         */
     }
+
+    public void setProjectile(AbstractProjectile projectile){
+        this.projectile = projectile;
+    }
+
+    public void setBarrel(AbstractBarrel barrel){
+        if(barrel != null){
+        this.barrel = barrel;
+    }}
 }
 
 
