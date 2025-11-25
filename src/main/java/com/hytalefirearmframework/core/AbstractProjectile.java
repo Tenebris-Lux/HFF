@@ -1,4 +1,4 @@
-package com.hytalefirearmframework.complex;
+package com.hytalefirearmframework.core;
 
 import java.io.File;
 import java.io.IOException;
