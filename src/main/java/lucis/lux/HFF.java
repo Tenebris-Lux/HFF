@@ -26,12 +26,9 @@ public class HFF extends JavaPlugin {
     @Override
     protected void setup() {
         // TODO: register components
-        try {
-            this.getCodecRegistry(Interaction.CODEC).register("hff:shoot_firearm", ShootFirearm.class, ShootFirearm.CODEC);
-            LOGGER.atInfo().log("Interaktion 'hff:shoot_firearm' erfolgreich registriert");
-        } catch(Exception e){
-            LOGGER.atSevere().log("Fehler bei der Registrierung der Interaktion: " + e.getMessage());
-        }
+
+        this.getCodecRegistry(Interaction.CODEC).register("hff:shoot_firearm", ShootFirearm.class, ShootFirearm.CODEC);
+
         this.firearmStatsComponent = this.getEntityStoreRegistry().registerComponent(FirearmStatsComponent.class, FirearmStatsComponent::new);
         this.getEntityStoreRegistry().registerSystem(new FirearmSystem(this.firearmStatsComponent));
     }
