@@ -1,0 +1,19 @@
+{
+  "Group": "lucis.lux",
+  "Name": "hyFirearmFramework",
+  "Version": "1.0.0",
+  "Description": "Framework for in detail firearms.",
+  "Authors": [
+    {
+      "Name": "tenebrisLux",
+      "Email": "tenebrislux.code@gmail.com"
+    }
+  ],
+  "Website": "https://your-plugin-website.com",
+  "ServerVersion": "*",
+  "Dependencies": {},
+  "OptionalDependencies": {},
+  "DisabledByDefault": false,
+  "IncludesAssetPack": true,
+  "Main": "lucis.lux.HytaleFirearmFramework"
+}
