@@ -1,16 +1,23 @@
 {
   "TranslationProperties": {
-    "Name": "server.items.customGun.name",
-    "Description": "server.items.customGun.description"
+    "Name": "customGun.name",
+    "Description": "customGun.description"
   },
+  "Id": "Custom_Gun",
   "Categories": [
-    "Items.Weapons"
+    "Weapons"
   ],
   "Icon": "Icons/ItemsGenerated/Weapon_Gun_Blunderbuss.png",
   "Texture": "Items/Weapons/Gun/Blunderbuss_Texture.png",
   "PlayerAnimationsId": "Rifle",
   "Interactions": {
-    "Primary": "Gun_Shoot_Flintlock_Charging",
+    "Primary": {
+      "Interactions": [
+        {
+          "Type": "hff:shoot_firearm"
+        }
+      ]
+    },
     "Secondary": "Gun_Attack"
   },
   "InteractionVars": {
@@ -55,24 +62,7 @@
           }
         }
       ]
-    },
-    "Gun_Shoot": {
-      "Interactions": [
-        {
-          "Parent": "Gun_Shoot",
-          "ProjectileId": "Gun_Blunderbuss_Bullet"
-        }
-      ]
-    },
-    "Gun_Shoot_Flintlock_Charged": {
-      "Interactions": [
-        {
-          "Parent": "Gun_Shoot",
-          "ProjectileId": "Gun_Blunderbuss_Bullet"
-        }
-      ]
-    },
-    "Gun_Shoot_Fail": "Gun_Shoot_Fail"
+    }
   },
   "IconProperties": {
     "Scale": 0.38,
@@ -96,6 +86,5 @@
     "Family": [
       "Gun"
     ]
-  },
-  "Weapon": {}
+  }
 }
