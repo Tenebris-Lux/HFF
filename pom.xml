@@ -6,7 +6,7 @@
 
     <groupId>lucis.lux</groupId>
     <artifactId>HFF</artifactId>
-    <version>0.1-Testing</version>
+    <version>0.0.2-Testing</version>
 
     <properties>
         <maven.compiler.source>25</maven.compiler.source>

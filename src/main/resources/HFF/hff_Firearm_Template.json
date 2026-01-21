@@ -1,0 +1,10 @@
+{
+  "RPM": 2,
+  "ProjectileAmount": 1,
+  "SpreadBase": 0.1,
+  "MovementPenalty": 0.2,
+  "MisfireChance": 0.0,
+  "JamChance": 0.0,
+  "VerticalRecoil": 2.0,
+  "HorizontalRecoil": 0.5
+}

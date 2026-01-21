@@ -1,5 +1,8 @@
 package lucis.lux.components;
 
+import com.hypixel.hytale.codec.Codec;
+import com.hypixel.hytale.codec.KeyedCodec;
+import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Component;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
@@ -7,7 +10,7 @@ import javax.annotation.Nullable;
 
 public class FirearmStatsComponent implements Component<EntityStore> {
 
-    private double intervalMs;
+    private double rpm;
     private double projectileVelocity;
     private int projectileAmount;
     private double spreadBase;
@@ -17,16 +20,37 @@ public class FirearmStatsComponent implements Component<EntityStore> {
     private double verticalRecoil;
     private double horizontalRecoil;
 
-    private double elapsedTime;
+    private double elapsedTime = 0.0;
+
+    public static final BuilderCodec<FirearmStatsComponent> CODEC = BuilderCodec.builder(FirearmStatsComponent.class, FirearmStatsComponent::new)
+            .append(new KeyedCodec<>("RPM", Codec.DOUBLE), (c, v) -> c.rpm = v, c -> c.rpm)
+            .add()
+            .append(new KeyedCodec<>("ProjectileVelocity", Codec.DOUBLE), (c, v) -> c.projectileVelocity = v, c -> c.projectileVelocity)
+            .add()
+            .append(new KeyedCodec<>("ProjectileAmount", Codec.INTEGER), (c, v) -> c.projectileAmount = v, c -> c.projectileAmount)
+            .add()
+            .append(new KeyedCodec<>("SpreadBase", Codec.DOUBLE), (c, v) -> c.spreadBase = v, c -> c.spreadBase)
+            .add()
+            .append(new KeyedCodec<>("MovementPenalty", Codec.DOUBLE), (c, v) -> c.movementPenalty = v, c -> c.movementPenalty)
+            .add()
+            .append(new KeyedCodec<>("MisfireChance", Codec.DOUBLE), (c, v) -> c.misfireChance = v, c -> c.misfireChance)
+            .add()
+            .append(new KeyedCodec<>("JamChance", Codec.DOUBLE), (c, v) -> c.jamChance = v, c -> c.jamChance)
+            .add()
+            .append(new KeyedCodec<>("VerticalRecoil", Codec.DOUBLE), (c, v) -> c.verticalRecoil = v, c -> c.verticalRecoil)
+            .add()
+            .append(new KeyedCodec<>("HorizontalRecoil", Codec.DOUBLE), (c, v) -> c.horizontalRecoil = v, c -> c.horizontalRecoil)
+            .add()
+            .build();
 
     public FirearmStatsComponent() {
-        this(500f, 10f, 1, 1f, 0f, 0f, 0f, 0.5f, 0.5f);
+        this(1, 10f, 1, 1f, 0f, 0f, 0f, 0.5f, 0.5f);
     }
 
-    public FirearmStatsComponent(double intervalMs, double projectileVelocity, int projectileAmount, double spreadBase, double movementPenalty, double misfireChance, double jamChance, double verticalRecoil, double horizontalRecoil) {
+    public FirearmStatsComponent(double rpm, double projectileVelocity, int projectileAmount, double spreadBase, double movementPenalty, double misfireChance, double jamChance, double verticalRecoil, double horizontalRecoil) {
         this.verticalRecoil = verticalRecoil;
         this.spreadBase = spreadBase;
-        this.intervalMs = intervalMs;
+        this.rpm = rpm;
         this.projectileVelocity = projectileVelocity;
         this.projectileAmount = projectileAmount;
         this.movementPenalty = movementPenalty;
@@ -44,7 +68,7 @@ public class FirearmStatsComponent implements Component<EntityStore> {
         this.movementPenalty = other.movementPenalty;
         this.projectileAmount = other.projectileAmount;
         this.projectileVelocity = other.projectileVelocity;
-        this.intervalMs = other.intervalMs;
+        this.rpm = other.rpm;
         this.spreadBase = other.spreadBase;
         this.verticalRecoil = other.verticalRecoil;
         this.elapsedTime = other.elapsedTime;
@@ -57,8 +81,8 @@ public class FirearmStatsComponent implements Component<EntityStore> {
     }
 
 
-    public double getIntervalMs() {
-        return intervalMs;
+    public double getRpm() {
+        return rpm;
     }
 
     public double getProjectileVelocity() {
@@ -98,11 +122,11 @@ public class FirearmStatsComponent implements Component<EntityStore> {
     }
 
     public boolean isTimeElapsed() {
-        return elapsedTime >= intervalMs;
+        return elapsedTime >= 1 / rpm ;
     }
 
-    public void setIntervalMs(double intervalMs) {
-        this.intervalMs = intervalMs;
+    public void setRpm(double rpm) {
+        this.rpm = rpm;
     }
 
     public void setProjectileVelocity(double projectileVelocity) {

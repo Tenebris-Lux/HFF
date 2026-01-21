@@ -1,0 +1,63 @@
+{
+  "TranslationProperties": {
+    "Name": "HffFirearm.Template.name",
+    "Description": "HffFirearm.Template.description"
+  },
+  "id": "Firearm_Template",
+  "Categories": [
+    "Items.Weapons"
+  ],
+  "Icon": "Icons/ItemsGenerated/Weapon_Gun_Blunderbuss.png",
+  "Texture": "Items/Weapons/Gun/Blunderbuss_Texture.png",
+  "PlayerAnimationsId": "Rifle",
+  "Interactions": {
+    "Primary": {
+      "Cooldown": {
+        "Id": "Firearm_Cooldown",
+        "Cooldown": 5.0
+      },
+      "Interactions": [
+        {
+          "Type": "hff:shoot_firearm"
+        }
+      ]
+    },
+    "Secondary": {
+      "Interactions": [
+        {
+          "Type": "hff:checkCooldown"
+        }
+      ]
+    }
+  },
+  "Parameters": {
+    "AmountProjectiles": 1
+  },
+  "IconProperties": {
+    "Scale": 0.38,
+    "Translation": [
+      -14,
+      -25
+    ],
+    "Rotation": [
+      320,
+      90,
+      0
+    ]
+  },
+  "Quality": "Technical",
+  "Model": "Items/Weapons/Gun/Blunderbuss.blockymodel",
+  "Scale": 1,
+  "Tags": {
+    "Type": [
+      "Weapon"
+    ],
+    "Family": [
+      "Gun",
+      "Firearm"
+    ],
+    "FirearmTags": [
+      "Handgun"
+    ]
+  }
+}
