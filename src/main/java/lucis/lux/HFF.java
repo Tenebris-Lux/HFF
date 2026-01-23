@@ -6,10 +6,10 @@ import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.components.FirearmStatsComponent;
-import lucis.lux.events.AfterLoadedAssetsEvent;
 import lucis.lux.interactions.CheckCooldownInteraction;
 import lucis.lux.interactions.ShootFirearmInteraction;
 import lucis.lux.systems.FirearmSystem;
+import lucis.lux.util.ConfigManager;
 
 import javax.annotation.Nonnull;
 
@@ -25,6 +25,8 @@ public class HFF extends JavaPlugin {
 
     @Override
     protected void setup() {
+        ConfigManager.loadConfig();
+
         // TODO: register components
 
         this.getCodecRegistry(Interaction.CODEC).register("hff:shoot_firearm", ShootFirearmInteraction.class, ShootFirearmInteraction.CODEC);
