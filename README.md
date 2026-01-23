@@ -6,16 +6,19 @@
 
 ## Overview
 
-**HFF** is a flexible, **Entity Component System (ECS)**-compatible framework designed to simplify the creation and management of firearms, crossbows and other ranged weapons in **Hytale**. It provides a modular architecture for weapon behavior, attachments, animations, and physics, making it easy to integrate into custom mods or game projects.
+**HFF** is a flexible framework designed to simplify the creation and management of **firearms, crossbows and other
+ranged weapons** in Hytale.
+It uses **Hytale's Entity Component System (ECS)** to provide a modular architecture for weapon behaviour, attachments,
+animations, and physics.
 
 ---
 
-## Features
+## Key Features
 
 - **Modular Weapon System**: Define weapons as combinations of components (e.g. barrels, magazines, scopes).
 - **ECS Integration**: Build for Hytale's ECS architecture.
 - **Customizable Attachments**: Supports scopes, silencers, grips, and more.
-- **Physics & Ballistics**: Realistic projectile behavior, recoil, and spread.
+- **Physics & Ballistics**: Realistic projectile behaviour, recoil, and spread.
 - **Animation Support**: Smooth animations for reloading, firing, and inspecting weapons.
 - **Event-Driven**: Hook into weapon events (e.g., `onFire`, `onReload`) for custom logic.
 
@@ -23,38 +26,75 @@
 
 ## Installation
 
-1. **Download** the latest release from the [Releases](https://github.com/Tenebris-Lux/HytaleFirearmFramework/releases) page.
+1. **Download** the latest release from the [Releases](https://github.com/Tenebris-Lux/HytaleFirearmFramework/releases)
+   page.
 2. **Add the JAR** to your Hytale mod project.
-3. **Configure** the framework in your mod's initialization:
+3. **Configure** the framework in your mod's initialisation:
 
-    ```java
-    HFF.initialize();
-    ```
+   ```java
+    public class  MyMod extends JavaPlugin{
+        @Override
+        protected  void setup(){
+            HFF.initialize();
+        }
+    }
+   ```
 
 4. **Start building** your weapons!
 
 ---
 
-## Usage
+## Configuration
 
-1. **Create Weapons** as Assets with the help of the given Template.
-2. **Customize Behavior** by overriding default events and/or systems.
+The framework uses a `hff_config.json` file to define where weapon stats are loaded from.
+This file can be placed in **two locations**:
+
+1. **Hytale's main directory** (e.g., `%appdata%\Hytale`)
+2. **Inside your JAR** (in `src/main/resources/hff_config.json`)
+
+**Example `hff_config.json`**
+
+```json
+{
+  "stats_path": "myMod/",
+  "fallback_path": "secret/models",
+  "use_jar_resources": true
+}
+```
+
+| Field               | Description                                                                                        |
+|---------------------|----------------------------------------------------------------------------------------------------|
+| `stats_path`        | Path to the directory containing weapon stat files **on the server**.                              |
+| `fallback_path`     | Path to the directory containing weapon stat files **inside the JAR**.                             |
+| `use_jar_resources` | If `true`, the framework will first try to load stats from the JAR before checking the filesystem. |
 
 ---
 
-## Customization
+## Usage
 
-### Components
+1. **Create a Weapon** 
 
-Extend or create new components:
+   Define your weapon in a **JSON file** (e.g., `Hff_Firearm_Template.json`):
+   ```json
+   {
+   "RPM": 500.0,
+   "ProjectileVelocity": 10.0,
+   "ProjectileAmount": 1,
+   "SpreadBase": 0.1,
+   "MovementPenalty": 0.5,
+   "MisfireChance": 0.01,
+   "JamChance": 0.005,
+   "VerticalRecoil": 0.5,
+   "HorizontalRecoil": 0.5
+   }
+   ```
+   Place this file in:
+   - `stats_path` (e.g., `MyMod/Weapons/Stats/Hff_Firearm_Template.json`) or
+   - `fallback_path` (e.g., `items/Hff_Firearm_Template.json` inside the JAR).
+   
+2. **Customise Weapon Behaviour** 
 
-```java
-public class CustomScopeComponent extends AttachmentComponent {
-    public CustomScopeComponent(float zoomLevel){
-        super(zoomLevel);
-    }
-}
-```
+   Extend or override the default interactions to customise weapon behaviour.
 
 ---
 
@@ -67,17 +107,15 @@ hff/
 |   |   ├── lucis/lux/
 |   |   |   ├── components/                     # Components
 |   |   |   ├── systems/                        # ECS systems
+|   |   |   ├── util                            # Utiliary Classes
 |   |   |   └── HFF.java                        # Plugin Setup
 |   └── resources/
-|       ├── Common/
-|       |   ├── Blocks/                         # Block assets
-|       |   ├── BlockTextures/                  # Texture assets
-|       |   └── Icons/                          # Icon assets
 |       ├── Server/
 |       |   ├── Item/Items
-|       |   |   └── template_firearm.json       # Firearm template
+|       |   |   └── Hff_Firearm_Template.json   # Firearm template
 |       |   └── Languages/en-US/
 |       |       └── items.lang                  # Translation file
+|       ├── hff_config.json                     # Fallback config file
 |       └── manifest.json                       # Plugin configuration file
 └── README.md
 
@@ -88,6 +126,7 @@ hff/
 ## Contributing
 
 Contributions are welcome! Open a **Pull Request** or submit an **Issue** for bugs/feature requests.
+
 1. Fork the repository.
 2. Create a feature branch (`git checkout -b feature/your-feature`).
 3. Commit your changes (`git commit -am 'feat: Description of feature'`).
@@ -96,6 +135,30 @@ Contributions are welcome! Open a **Pull Request** or submit an **Issue** for bu
 
 ---
 
+## FAQ
+
+1. **How do I create my own weapon?**
+
+   Create a JSON file in the `stats_path` directory (or `fallback_path` inside your JAR) and define the attributes.
+   You additionally need an item asset with the same name as the stats file. Just copy the template and rename it.
+
+2. **Why aren't my weapon stats loading?**
+   - Check the path in `hff_config.json`.
+   - Ensure the JSON file is correctly formatted.
+
+3. **How can I extend the framework?**
+   
+   Create custom interactions and systems and register them in your plugin class.
+
+---
+
 ## License
 
 This project is licensed under the **MIT Licence**.
+
+---
+
+## Notes for users
+
+- **Logging**: The framework logs where it searches for files. Check the logs if something isn't working.
+- **Fallback Mechanism**: If a file isn't found in the filesystem, the framework automatically checks the JAR.
