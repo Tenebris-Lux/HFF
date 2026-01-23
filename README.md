@@ -56,17 +56,19 @@ This file can be placed in **two locations**:
 
 ```json
 {
-  "stats_path": "myMod/",
-  "fallback_path": "secret/models",
-  "use_jar_resources": true
+   "filePath": "HFF/",
+   "archivePath": "mods/hff.jar",
+   "pathInArchive": "HFF/",
+   "archiveFirst": true
 }
 ```
 
-| Field               | Description                                                                                        |
-|---------------------|----------------------------------------------------------------------------------------------------|
-| `stats_path`        | Path to the directory containing weapon stat files **on the server**.                              |
-| `fallback_path`     | Path to the directory containing weapon stat files **inside the JAR**.                             |
-| `use_jar_resources` | If `true`, the framework will first try to load stats from the JAR before checking the filesystem. |
+| Field           | Description                                                                                            |
+|-----------------|--------------------------------------------------------------------------------------------------------|
+| `filePath`      | Path to the directory containing weapon stat files **on the server**.                                  |
+| `archivePath`   | Path to a archive containing weapon stat files (supports .jar and .zip).                               |
+| `pathInArchive` | Path **inside the archive** to the stat files.                                                         |
+| `archiveFirst`  | If `true`, the framework will first try to load stats from the archive before checking the filesystem. |
 
 ---
 

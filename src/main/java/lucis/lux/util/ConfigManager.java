@@ -11,9 +11,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class ConfigManager {
-    private static String statsPath = "Server/HFF/";
-    private static String fallbackPath = "items/";
-    private static boolean useJarResources = true;
+    private static String filePath = "Server/HFF/";
+    private static String archivePath = "items/";
+    private static String pathInArchive = "item/";
+    private static boolean archiveFirst = true;
 
     public static void loadConfig() {
         try {
@@ -33,27 +34,31 @@ public class ConfigManager {
     private static void loadConfigFromFileSystem(Path configPath) throws Exception {
         JsonObject config = JsonParser.parseReader(Files.newBufferedReader(configPath)).getAsJsonObject();
 
-        if (config.has("stats_path"))
-            statsPath = config.get("stats_path").getAsString();
-        if (config.has("fallback_path"))
-            fallbackPath = config.get("fallback_path").getAsString();
-        if (config.has("use_jar_resources"))
-            useJarResources = config.get("use_jar_resources").getAsBoolean();
+        if (config.has("filePath"))
+            filePath = config.get("filePath").getAsString();
+        if (config.has("archivePath"))
+            archivePath = config.get("archivePath").getAsString();
+        if (config.has("pathInArchive"))
+            pathInArchive = config.get("pathInArchive").getAsString();
+        if (config.has("archiveFirst"))
+            archiveFirst = config.get("archiveFirst").getAsBoolean();
 
         HFF.get().getLogger().atInfo().log("Loaded config from file system: " + configPath.toAbsolutePath());
     }
 
     private static void loadConfigFromJar() throws Exception {
-        try (InputStream is = ConfigManager.class.getResourceAsStream("/config.json")) {
+        try (InputStream is = ConfigManager.class.getResourceAsStream("/hff_config.json")) {
             if (is != null) {
                 JsonObject config = JsonParser.parseReader(new InputStreamReader(is)).getAsJsonObject();
 
-                if (config.has("stats_path"))
-                    statsPath = config.get("stats_path").getAsString();
-                if (config.has("fallback_path"))
-                    fallbackPath = config.get("fallback_path").getAsString();
-                if (config.has("use_jar_resources"))
-                    useJarResources = config.get("use_jar_resources").getAsBoolean();
+                if (config.has("filePath"))
+                    filePath = config.get("filePath").getAsString();
+                if (config.has("archivePath"))
+                    archivePath = config.get("archivePath").getAsString();
+                if (config.has("pathInArchive"))
+                    pathInArchive = config.get("pathInArchive").getAsString();
+                if (config.has("archiveFirst"))
+                    archiveFirst = config.get("archiveFirst").getAsBoolean();
 
                 HFF.get().getLogger().atInfo().log("Loaded config from jar.");
             } else {
@@ -62,15 +67,19 @@ public class ConfigManager {
         }
     }
 
-    public static String getStatsPath() {
-        return statsPath;
+    public static String getFilePath() {
+        return filePath;
     }
 
-    public static String getFallbackPath() {
-        return fallbackPath;
+    public static String getArchivePath() {
+        return archivePath;
     }
 
-    public static boolean isUseJarResources() {
-        return useJarResources;
+    public static String getPathInArchive() {
+        return pathInArchive;
+    }
+
+    public static boolean isArchiveFirst() {
+        return archiveFirst;
     }
 }

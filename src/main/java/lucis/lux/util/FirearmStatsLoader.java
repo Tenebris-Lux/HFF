@@ -5,12 +5,16 @@ import com.google.gson.JsonParser;
 import lucis.lux.HFF;
 import lucis.lux.components.FirearmStatsComponent;
 
+import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class FirearmStatsLoader {
 
@@ -19,34 +23,62 @@ public class FirearmStatsLoader {
 
         FirearmStatsComponent stats;
 
-        if (ConfigManager.isUseJarResources()) {
-            stats = tryLoadFromJar(ConfigManager.getFallbackPath() + fileName);
+        if (ConfigManager.isArchiveFirst()) {
+            stats = tryLoadFromArchive(ConfigManager.getArchivePath(), ConfigManager.getPathInArchive() + fileName);
             if (stats != null) {
                 return stats;
             }
         }
 
-        stats = tryLoadFromFileSystem(ConfigManager.getStatsPath(), fileName);
+        stats = tryLoadFromFileSystem(ConfigManager.getFilePath(), fileName);
         if (stats != null) {
             return stats;
+        }
+
+        if (!ConfigManager.isArchiveFirst()) {
+            stats = tryLoadFromArchive(ConfigManager.getArchivePath(), ConfigManager.getPathInArchive() + fileName);
+            if (stats != null) {
+                return stats;
+            }
         }
 
         HFF.get().getLogger().atSevere().log("Couldn't find Stats for: " + itemId);
         return new FirearmStatsComponent();
     }
 
-    private static FirearmStatsComponent tryLoadFromJar(String resourcePath) {
+    private static FirearmStatsComponent tryLoadFromArchive(String resourcePath, String entryPath) {
+        if (resourcePath.endsWith(".zip")) {
+            try (ZipFile zipFile = new ZipFile(resourcePath)) {
+                ZipEntry entry = zipFile.getEntry(entryPath);
+                if (entry == null) {
+                    HFF.get().getLogger().atSevere().log("Didn't find entry: " + entryPath);
+                    return null;
+                }
+                try (InputStream is = zipFile.getInputStream(entry)) {
+                    InputStreamReader isr = new InputStreamReader(is);
+                    BufferedReader reader = new BufferedReader(isr);
+                    JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
 
-        try (InputStream is = FirearmStatsLoader.class.getResourceAsStream("/" + resourcePath)) {
-            if (is != null) {
-                JsonObject jsonObject = JsonParser.parseReader(new InputStreamReader(is)).getAsJsonObject();
-
-                FirearmStatsComponent stats = setStatsFromJson(jsonObject);
-                HFF.get().getLogger().atInfo().log("Loaded stats from JAR: " + resourcePath);
-                return stats;
+                    FirearmStatsComponent stats = setStatsFromJson(jsonObject);
+                    HFF.get().getLogger().atInfo().log("Loaded stats from ZIP: " + entryPath);
+                    return stats;
+                }
+            } catch (Exception e) {
+                HFF.get().getLogger().atSevere().log("Error while loading from ZIP: " + e.getMessage());
+                return null;
             }
-        } catch (Exception e) {
-            HFF.get().getLogger().atSevere().log("Error while loading stats from JAR: " + e.getMessage());
+        } else if (resourcePath.endsWith(".jar")) {
+            try (InputStream is = FirearmStatsLoader.class.getResourceAsStream("/" + resourcePath)) {
+                if (is != null) {
+                    JsonObject jsonObject = JsonParser.parseReader(new InputStreamReader(is)).getAsJsonObject();
+
+                    FirearmStatsComponent stats = setStatsFromJson(jsonObject);
+                    HFF.get().getLogger().atInfo().log("Loaded stats from JAR: " + resourcePath);
+                    return stats;
+                }
+            } catch (Exception e) {
+                HFF.get().getLogger().atSevere().log("Error while loading stats from JAR: " + e.getMessage());
+            }
         }
         return null;
     }
