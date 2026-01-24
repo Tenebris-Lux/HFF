@@ -47,10 +47,11 @@ animations, and physics.
 ## Configuration
 
 The framework uses a `hff_config.json` file to define where weapon stats are loaded from.
-This file can be placed in **two locations**:
+This file can be placed in **three locations** (and are loaded in this order):
 
-1. **Hytale's main directory** (e.g., `%appdata%\Hytale`)
-2. **Inside your JAR** (in `src/main/resources/hff_config.json`)
+1. **Inside your zip file** (in `/hff_config.json`)
+2. **Hytale's main directory** (e.g., `%appdata%\Hytale`)
+3. **Inside your JAR** (in `src/main/resources/hff_config.json`)
 
 **Example `hff_config.json`**
 
