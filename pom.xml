@@ -6,7 +6,7 @@
 
     <groupId>lucis.lux</groupId>
     <artifactId>HFF</artifactId>
-    <version>0.0.2-Testing</version>
+    <version>0.1.0-Testing</version>
 
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
@@ -31,7 +31,7 @@
         <dependency>
             <groupId>com.hypixel.hytale</groupId>
             <artifactId>Server</artifactId>
-            <version>2026.01.22-6f8bdbdc4</version>
+            <version>2026.01.24-6e2d4fc36</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
