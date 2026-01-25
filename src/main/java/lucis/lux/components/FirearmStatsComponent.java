@@ -43,8 +43,10 @@ public class FirearmStatsComponent implements Component<EntityStore> {
             .add()
             .build();
 
+    public static final KeyedCodec<FirearmStatsComponent> KEY = new KeyedCodec<>("HFF_FIREARM_COMPONENT", CODEC);
+
     public FirearmStatsComponent() {
-        this(1, 10f, 1, 1f, 0f, 0f, 0f, 0.5f, 0.5f);
+        this(-1f, -1f, -1, -1f, -1f, -1f, -1f, -1f, -1f);
     }
 
     public FirearmStatsComponent(double rpm, double projectileVelocity, int projectileAmount, double spreadBase, double movementPenalty, double misfireChance, double jamChance, double verticalRecoil, double horizontalRecoil) {
@@ -117,12 +119,12 @@ public class FirearmStatsComponent implements Component<EntityStore> {
         return horizontalRecoil;
     }
 
-    public double getElapsedTime() {
-        return elapsedTime;
+    public double getRemainingTime() {
+        return (1 / rpm) - elapsedTime;
     }
 
     public boolean isTimeElapsed() {
-        return elapsedTime >= 1 / rpm ;
+        return elapsedTime >= 1 / rpm;
     }
 
     public void setRpm(double rpm) {

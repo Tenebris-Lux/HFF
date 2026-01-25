@@ -3,7 +3,6 @@
     "Name": "HffFirearm.Template.name",
     "Description": "HffFirearm.Template.description"
   },
-  "id": "Firearm_Template",
   "Categories": [
     "Items.Weapons"
   ],
@@ -12,26 +11,16 @@
   "PlayerAnimationsId": "Rifle",
   "Interactions": {
     "Primary": {
-      "Cooldown": {
-        "Id": "Firearm_Cooldown",
-        "Cooldown": 5.0
-      },
       "Interactions": [
         {
-          "Type": "hff:shoot_firearm"
-        }
-      ]
-    },
-    "Secondary": {
-      "Interactions": [
-        {
-          "Type": "hff:checkCooldown"
+          "Type": "hff:checkCooldown",
+          "Next": {
+            "Type": "hff:shoot_firearm"
+          },
+          "Failed": "Simple"
         }
       ]
     }
-  },
-  "Parameters": {
-    "AmountProjectiles": 1
   },
   "IconProperties": {
     "Scale": 0.38,
@@ -48,6 +37,7 @@
   "Quality": "Technical",
   "Model": "Items/Weapons/Gun/Blunderbuss.blockymodel",
   "Scale": 1,
+  "MaxStack": 1,
   "Tags": {
     "Type": [
       "Weapon"

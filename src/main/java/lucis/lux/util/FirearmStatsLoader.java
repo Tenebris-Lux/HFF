@@ -12,7 +12,6 @@ import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -110,25 +109,25 @@ public class FirearmStatsLoader {
 
         FirearmStatsComponent stats = new FirearmStatsComponent();
 
-        stats.setRpm(getDoubleOrDefault(jsonObject, "RPM", 500.0));
-        stats.setProjectileVelocity(getDoubleOrDefault(jsonObject, "ProjectileVelocity", 10.0));
-        stats.setProjectileAmount(getIntOrDefault(jsonObject, "ProjectileAmount", 1));
-        stats.setSpreadBase(getDoubleOrDefault(jsonObject, "SpreadBase", 0.1));
-        stats.setMovementPenalty(getDoubleOrDefault(jsonObject, "MovementPenalty", 0.5));
-        stats.setMisfireChance(getDoubleOrDefault(jsonObject, "MisfireChance", 0.01));
-        stats.setJamChance(getDoubleOrDefault(jsonObject, "JamChance", 0.005));
-        stats.setVerticalRecoil(getDoubleOrDefault(jsonObject, "VerticalRecoil", 0.5));
-        stats.setHorizontalRecoil(getDoubleOrDefault(jsonObject, "HorizontalRecoil", 0.5));
+        stats.setRpm(getDoubleOrDefault(jsonObject, "RPM"));
+        stats.setProjectileVelocity(getDoubleOrDefault(jsonObject, "ProjectileVelocity"));
+        stats.setProjectileAmount(getIntOrDefault(jsonObject, "ProjectileAmount"));
+        stats.setSpreadBase(getDoubleOrDefault(jsonObject, "SpreadBase"));
+        stats.setMovementPenalty(getDoubleOrDefault(jsonObject, "MovementPenalty"));
+        stats.setMisfireChance(getDoubleOrDefault(jsonObject, "MisfireChance"));
+        stats.setJamChance(getDoubleOrDefault(jsonObject, "JamChance"));
+        stats.setVerticalRecoil(getDoubleOrDefault(jsonObject, "VerticalRecoil"));
+        stats.setHorizontalRecoil(getDoubleOrDefault(jsonObject, "HorizontalRecoil"));
 
         return stats;
     }
 
-    private static double getDoubleOrDefault(JsonObject jsonObject, String key, double defaultValue) {
-        return jsonObject.has(key) ? jsonObject.get(key).getAsDouble() : defaultValue;
+    private static double getDoubleOrDefault(JsonObject jsonObject, String key) {
+        return jsonObject.has(key) ? jsonObject.get(key).getAsDouble() : -1.0;
     }
 
-    private static int getIntOrDefault(JsonObject jsonObject, String key, int defaultValue) {
-        return jsonObject.has(key) ? jsonObject.get(key).getAsInt() : defaultValue;
+    private static int getIntOrDefault(JsonObject jsonObject, String key) {
+        return jsonObject.has(key) ? jsonObject.get(key).getAsInt() : -1;
     }
 
 

@@ -32,7 +32,6 @@ public class ConfigManager {
         try {
             Path configPath = getCurrentArchivePath();
 
-            HFF.get().getLogger().atInfo().log(configPath.toString());
             if (configPath != null && loadConfigFromZip(configPath)) {
                 return;
             }

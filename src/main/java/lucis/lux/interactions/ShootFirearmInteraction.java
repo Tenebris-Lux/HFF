@@ -9,9 +9,7 @@ import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.InteractionContext;
 import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.CooldownHandler;
-import com.hypixel.hytale.server.core.modules.interaction.interaction.config.RootInteraction;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.SimpleInstantInteraction;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.HFF;
@@ -43,15 +41,6 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
         Player player = commandBuffer.getComponent(ref, Player.getComponentType());
 
         FirearmStatsComponent stats = ref.getStore().getComponent(ref, HFF.get().getFirearmStatsComponentType());
-
-        if(stats == null){
-            FirearmStatsAttacher.attachFirearmStats(ref, commandBuffer, interactionContext.getHeldItem().getItemId());
-        } else {
-            player.sendMessage(Message.raw(String.valueOf(stats.getRpm())));
-        }
-
-
-        ItemStack item = interactionContext.getHeldItem();
 
         player.sendMessage(Message.raw("bang"));
 
