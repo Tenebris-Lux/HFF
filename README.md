@@ -1,3 +1,5 @@
+[![Release](https://jitpack.io/v/Tenebris-Lux/HytaleFirearmFramework.svg)](https://jitpack.io/#Tenebris-Lux/HytaleFirearmFramework)
+
 # Hytale Firearm Framework (HFF)
 
 **A modular, ECS-based framework for firearms, crossbows and ranged weapons in Hytale**
@@ -26,21 +28,73 @@ animations, and physics.
 
 ## Installation
 
+### 1. Download & Server Setup
+
 1. **Download** the latest release from the [Releases](https://github.com/Tenebris-Lux/HytaleFirearmFramework/releases)
    page.
-2. **Add the JAR** to your Hytale mod project.
-3. **Configure** the framework in your mod's initialisation:
+2. **Install** the `HFF.jar` on your Hytale Server (place it in the mods folder alongside your own mod).
 
-   ```java
-    public class  MyMod extends JavaPlugin{
-        @Override
-        protected  void setup(){
-            HFF.initialize();
-        }
+### 2. Developer Setup (Dependency)
+
+To use the framework in your code, add it as a dependency.
+
+**Runtime Dependency (`manifest.json`)**
+Add `HFF` to your mods `manifest.json` to ensure the server loads the framework before your mod starts.
+
+```json
+"Dependencies": {
+"HFF": "^0.1.0"
+}
+```
+
+**Build Dependency**
+Add the library to your project to access the classes. (Replace TAG with the correct tag in each case.)
+
+_Option A: Maven (`pom.xml`)_
+
+```xml
+
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependency>
+<groupId>com.github.Tenebris-Lux</groupId>
+<artifactId>HytaleFirearmFramework</artifactId>
+<version>TAG</version>
+<scope>provided</scope>
+</dependency>
+```
+
+_Option B: Gradle (`build.gradle`)_
+
+```groovy
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    compileOnly 'com.github.Tenebris-Lux:HytaleFirearmFramework:TAG'
+}
+```
+
+### 3. Initialisation
+
+Configure the framework in your mod's initialisation method:
+
+```java
+ public class MyMod extends JavaPlugin {
+    @Override
+    protected void setup() {
+        HFF.initialize();
     }
-   ```
+}
+```
 
-4. **Start building** your weapons!
+### 4. Start building your weapons
 
 ---
 
@@ -57,10 +111,10 @@ This file can be placed in **three locations** (and are loaded in this order):
 
 ```json
 {
-   "filePath": "HFF/",
-   "archivePath": "mods/hff.jar",
-   "pathInArchive": "HFF/",
-   "archiveFirst": true
+  "filePath": "HFF/",
+  "archivePath": "mods/hff.jar",
+  "pathInArchive": "HFF/",
+  "archiveFirst": true
 }
 ```
 
@@ -75,7 +129,7 @@ This file can be placed in **three locations** (and are loaded in this order):
 
 ## Usage
 
-1. **Create a Weapon** 
+1. **Create a Weapon**
 
    Define your weapon in a **JSON file** (e.g., `Hff_Firearm_Template.json`):
    ```json
@@ -92,10 +146,10 @@ This file can be placed in **three locations** (and are loaded in this order):
    }
    ```
    Place this file in:
-   - `stats_path` (e.g., `MyMod/Weapons/Stats/Hff_Firearm_Template.json`) or
-   - `fallback_path` (e.g., `items/Hff_Firearm_Template.json` inside the JAR).
-   
-2. **Customise Weapon Behaviour** 
+    - `stats_path` (e.g., `MyMod/Weapons/Stats/Hff_Firearm_Template.json`) or
+    - `fallback_path` (e.g., `items/Hff_Firearm_Template.json` inside the JAR).
+
+2. **Customise Weapon Behaviour**
 
    Extend or override the default interactions to customise weapon behaviour.
 
@@ -146,11 +200,11 @@ Contributions are welcome! Open a **Pull Request** or submit an **Issue** for bu
    You additionally need an item asset with the same name as the stats file. Just copy the template and rename it.
 
 2. **Why aren't my weapon stats loading?**
-   - Check the path in `hff_config.json`.
-   - Ensure the JSON file is correctly formatted.
+    - Check the path in `hff_config.json`.
+    - Ensure the JSON file is correctly formatted.
 
 3. **How can I extend the framework?**
-   
+
    Create custom interactions and systems and register them in your plugin class.
 
 ---
