@@ -1,0 +1,20 @@
+package lucis.lux.components.enums;
+
+public enum FirearmType {
+    HANDGUN,
+    REVOLVER,
+    MACHINE_PISTOL,
+    SUBMACHINE_GUN,
+    SHOTGUN,
+    LONG_GUN,
+    AUTOMATIC_RIFLE,
+    LIGHT_MACHINE_GUN,
+    GP_MACHINE_GUN,
+    BATTLE_RIFLE,
+    ASSAULT_RIFLE,
+    MARKSMAN_RIFLE,
+    SNIPER_RIFLE,
+    ROCKET_LAUNCHER,
+    GRENADE_LAUNCHER,
+    OTHER
+}
