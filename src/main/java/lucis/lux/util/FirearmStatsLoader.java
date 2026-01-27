@@ -2,8 +2,8 @@ package lucis.lux.util;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import lucis.lux.HFF;
 import lucis.lux.components.FirearmStatsComponent;
+import lucis.lux.core.HFF;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -15,8 +15,23 @@ import java.nio.file.Paths;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+/**
+ * The {@code FirearmStatsLoader} class is responsible for loading firearm statistics
+ * from various sources such as ZIP archives, JAR resources, and the file system.
+ * It uses the configuration provided by the {@link ConfigManager} to determine the paths
+ * and the order in which to search for the statistics.
+ */
 public class FirearmStatsLoader {
 
+    /**
+     * Attempts to load firearm statistics for the given item ID from available sources.
+     * The method tries to load the statistics from a ZIP archive, the file system, or a JAR resource,
+     * depending on the configuration.
+     *
+     * @param itemId The ID of thee item for which to load the statistics.
+     * @return A {@link FirearmStatsComponent} instance containing the loaded statistics,
+     * or the new instance with default values if no statistics where found.
+     */
     public static FirearmStatsComponent loadStatsFromResource(String itemId) {
         String fileName = itemId.replace(':', '_') + ".json";
 
@@ -45,6 +60,14 @@ public class FirearmStatsLoader {
         return new FirearmStatsComponent();
     }
 
+    /**
+     * Attempts to load the firearm statistics from a ZIP or JAR archive.
+     *
+     * @param resourcePath The path to the archive.
+     * @param entryPath    The path to the entry within the archive.
+     * @return A {@link FirearmStatsComponent} instance containing the loaded statistics,
+     * or {@code null} if the entry was not found or an error occurred.
+     */
     private static FirearmStatsComponent tryLoadFromArchive(String resourcePath, String entryPath) {
         if (resourcePath.endsWith(".zip")) {
             try (ZipFile zipFile = new ZipFile(resourcePath)) {
@@ -82,6 +105,14 @@ public class FirearmStatsLoader {
         return null;
     }
 
+    /**
+     * Attempts to load firearm statistics from the file system.
+     *
+     * @param basePath The base path where the statistics file is located.
+     * @param fileName The name of the statistics file.
+     * @return A {@link FirearmStatsComponent} instance containing the loaded statistics,
+     * or {@code null} if the file was not found or an error occurred.
+     */
     private static FirearmStatsComponent tryLoadFromFileSystem(String basePath, String fileName) {
 
         Path filePath = Paths.get(basePath, fileName);
@@ -105,6 +136,12 @@ public class FirearmStatsLoader {
         }
     }
 
+    /**
+     * Sets the firearm statistics from a JSON object.
+     *
+     * @param jsonObject The JSON object containing the statistics.
+     * @return A {@link FirearmStatsComponent} instance with the statistics set.
+     */
     private static FirearmStatsComponent setStatsFromJson(JsonObject jsonObject) {
 
         FirearmStatsComponent stats = new FirearmStatsComponent();
@@ -118,16 +155,42 @@ public class FirearmStatsLoader {
         stats.setJamChance(getDoubleOrDefault(jsonObject, "JamChance"));
         stats.setVerticalRecoil(getDoubleOrDefault(jsonObject, "VerticalRecoil"));
         stats.setHorizontalRecoil(getDoubleOrDefault(jsonObject, "HorizontalRecoil"));
+        stats.setDisabled(getBoolOrDefault(jsonObject, "Disabled"));
 
         return stats;
     }
 
+    /**
+     * Retrieves a double value from a JSON object, or returns a default value if the key is not present.
+     *
+     * @param jsonObject The JSON object to retrieve the value from.
+     * @param key        The key of the value to retrieve.
+     * @return The double value associated with the key, or -1.0 if the key is not present.
+     */
     private static double getDoubleOrDefault(JsonObject jsonObject, String key) {
         return jsonObject.has(key) ? jsonObject.get(key).getAsDouble() : -1.0;
     }
 
+    /**
+     * Retrieves an integer value from a JSON object, or returns a default value if the key is not present.
+     *
+     * @param jsonObject The JSON object to retrieve the value from.
+     * @param key        The key of the value to retrieve.
+     * @return The integer value associated with the key, or -1 if the key is not present.
+     */
     private static int getIntOrDefault(JsonObject jsonObject, String key) {
         return jsonObject.has(key) ? jsonObject.get(key).getAsInt() : -1;
+    }
+
+    /**
+     * Retrieves a boolean value from a JSON object, or returns a default value if the key is not present.
+     *
+     * @param jsonObject The JSON object to retrieve the value from.
+     * @param key        The key of the value to retrieve.
+     * @return The boolean value associated with the key, or {@code false} if the key is not present.
+     */
+    private static boolean getBoolOrDefault(JsonObject jsonObject, String key) {
+        return jsonObject.has(key) && jsonObject.get(key).getAsBoolean();
     }
 
 

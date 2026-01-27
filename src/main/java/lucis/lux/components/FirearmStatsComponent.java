@@ -22,6 +22,8 @@ public class FirearmStatsComponent implements Component<EntityStore> {
 
     private double elapsedTime = 0.0;
 
+    private boolean disabled;
+
     public static final BuilderCodec<FirearmStatsComponent> CODEC = BuilderCodec.builder(FirearmStatsComponent.class, FirearmStatsComponent::new)
             .append(new KeyedCodec<>("RPM", Codec.DOUBLE), (c, v) -> c.rpm = v, c -> c.rpm)
             .add()
@@ -41,15 +43,17 @@ public class FirearmStatsComponent implements Component<EntityStore> {
             .add()
             .append(new KeyedCodec<>("HorizontalRecoil", Codec.DOUBLE), (c, v) -> c.horizontalRecoil = v, c -> c.horizontalRecoil)
             .add()
+            .append(new KeyedCodec<>("Disabled", Codec.BOOLEAN), (c, v) -> c.disabled = v, c -> c.disabled)
+            .add()
             .build();
 
     public static final KeyedCodec<FirearmStatsComponent> KEY = new KeyedCodec<>("HFF_FIREARM_COMPONENT", CODEC);
 
     public FirearmStatsComponent() {
-        this(-1f, -1f, -1, -1f, -1f, -1f, -1f, -1f, -1f);
+        this(-1f, -1f, -1, -1f, -1f, -1f, -1f, -1f, -1f, false);
     }
 
-    public FirearmStatsComponent(double rpm, double projectileVelocity, int projectileAmount, double spreadBase, double movementPenalty, double misfireChance, double jamChance, double verticalRecoil, double horizontalRecoil) {
+    public FirearmStatsComponent(double rpm, double projectileVelocity, int projectileAmount, double spreadBase, double movementPenalty, double misfireChance, double jamChance, double verticalRecoil, double horizontalRecoil, boolean disabled) {
         this.verticalRecoil = verticalRecoil;
         this.spreadBase = spreadBase;
         this.rpm = rpm;
@@ -59,6 +63,7 @@ public class FirearmStatsComponent implements Component<EntityStore> {
         this.misfireChance = misfireChance;
         this.jamChance = jamChance;
         this.horizontalRecoil = horizontalRecoil;
+        this.disabled = disabled;
 
         this.elapsedTime = 0.0;
     }
@@ -74,6 +79,7 @@ public class FirearmStatsComponent implements Component<EntityStore> {
         this.spreadBase = other.spreadBase;
         this.verticalRecoil = other.verticalRecoil;
         this.elapsedTime = other.elapsedTime;
+        this.disabled = other.disabled;
     }
 
     @Nullable
@@ -113,6 +119,10 @@ public class FirearmStatsComponent implements Component<EntityStore> {
 
     public double getVerticalRecoil() {
         return verticalRecoil;
+    }
+
+    public boolean isDisabled() {
+        return disabled;
     }
 
     public double getHorizontalRecoil() {
@@ -161,6 +171,10 @@ public class FirearmStatsComponent implements Component<EntityStore> {
 
     public void setHorizontalRecoil(double horizontalRecoil) {
         this.horizontalRecoil = horizontalRecoil;
+    }
+
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
     }
 
     public void increaseElapsedTime(float dt) {
