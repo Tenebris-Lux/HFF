@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.github.Tenebris-Lux</groupId>
-    <artifactId>HytaleFirearmFramework</artifactId>
+    <artifactId>HFF</artifactId>
     <version>0.1.0-Testing</version>
 
     <properties>

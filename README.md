@@ -219,3 +219,7 @@ This project is licensed under the **MIT Licence**.
 
 - **Logging**: The framework logs where it searches for files. Check the logs if something isn't working.
 - **Fallback Mechanism**: If a file isn't found in the filesystem, the framework automatically checks the JAR.
+
+## Attributions
+
+<a href="https://www.flaticon.com/free-icons/crosshair" title="crosshair icons">Crosshair icons created by Metami septiana - Flaticon</a>

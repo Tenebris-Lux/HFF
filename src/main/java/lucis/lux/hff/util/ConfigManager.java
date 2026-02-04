@@ -1,8 +1,8 @@
-package lucis.lux.util;
+package lucis.lux.hff.util;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import lucis.lux.core.HFF;
+import lucis.lux.hff.HFF;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -37,6 +37,10 @@ public class ConfigManager {
      * Flag to determine if archives should be checked first for configuration.
      */
     private static boolean archiveFirst = true;
+    /**
+     * Flag to determine if additional debug messages should be shown.
+     */
+    private static boolean debugMode = false;
 
     /**
      * Retrieves the path of the currently running archive (JAR or ZIP).
@@ -150,6 +154,7 @@ public class ConfigManager {
         if (config.has("archivePath")) archivePath = config.get("archivePath").getAsString();
         if (config.has("pathInArchive")) pathInArchive = config.get("pathInArchive").getAsString();
         if (config.has("archiveFirst")) archiveFirst = config.get("archiveFirst").getAsBoolean();
+        if (config.has("debugMode")) debugMode = config.get("debugMode").getAsBoolean();
     }
 
     public static String getFilePath() {
@@ -166,5 +171,9 @@ public class ConfigManager {
 
     public static boolean isArchiveFirst() {
         return archiveFirst;
+    }
+
+    public static boolean isDebugMode() {
+        return debugMode;
     }
 }

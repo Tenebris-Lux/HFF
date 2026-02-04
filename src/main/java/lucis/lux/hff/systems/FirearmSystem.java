@@ -1,10 +1,10 @@
-package lucis.lux.systems;
+package lucis.lux.hff.systems;
 
 import com.hypixel.hytale.component.*;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.component.system.tick.EntityTickingSystem;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import lucis.lux.components.FirearmStatsComponent;
+import lucis.lux.hff.components.FirearmStatsComponent;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 

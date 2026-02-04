@@ -1,10 +1,13 @@
-package lucis.lux.components;
+package lucis.lux.hff.components;
 
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Component;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import lucis.lux.hff.components.enums.FireMode;
+import lucis.lux.hff.components.enums.FirearmClass;
+import lucis.lux.hff.components.enums.FirearmType;
 
 import javax.annotation.Nullable;
 
@@ -19,6 +22,9 @@ public class FirearmStatsComponent implements Component<EntityStore> {
     private double jamChance;
     private double verticalRecoil;
     private double horizontalRecoil;
+    private FirearmClass firearmClass;
+    private FirearmType firearmType;
+    private FireMode fireMode;
 
     private double elapsedTime = 0.0;
 
@@ -129,6 +135,18 @@ public class FirearmStatsComponent implements Component<EntityStore> {
         return horizontalRecoil;
     }
 
+    public FirearmClass getFirearmClass() {
+        return firearmClass;
+    }
+
+    public FirearmType getFirearmType() {
+        return firearmType;
+    }
+
+    public FireMode getFireMode() {
+        return fireMode;
+    }
+
     public double getRemainingTime() {
         return (1 / rpm) - elapsedTime;
     }
@@ -175,6 +193,18 @@ public class FirearmStatsComponent implements Component<EntityStore> {
 
     public void setDisabled(boolean disabled) {
         this.disabled = disabled;
+    }
+
+    public void setFirearmClass(FirearmClass firearmClass) {
+        this.firearmClass = firearmClass;
+    }
+
+    public void setFirearmType(FirearmType firearmType) {
+        this.firearmType = firearmType;
+    }
+
+    public void setFireMode(FireMode fireMode) {
+        this.fireMode = fireMode;
     }
 
     public void increaseElapsedTime(float dt) {

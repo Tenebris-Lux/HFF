@@ -1,4 +1,4 @@
-package lucis.lux.util;
+package lucis.lux.hff.util;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Resource;

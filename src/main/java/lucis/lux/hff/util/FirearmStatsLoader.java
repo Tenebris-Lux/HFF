@@ -1,9 +1,12 @@
-package lucis.lux.util;
+package lucis.lux.hff.util;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import lucis.lux.components.FirearmStatsComponent;
-import lucis.lux.core.HFF;
+import lucis.lux.hff.components.FirearmStatsComponent;
+import lucis.lux.hff.components.enums.FireMode;
+import lucis.lux.hff.components.enums.FirearmClass;
+import lucis.lux.hff.components.enums.FirearmType;
+import lucis.lux.hff.HFF;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -156,6 +159,9 @@ public class FirearmStatsLoader {
         stats.setVerticalRecoil(getDoubleOrDefault(jsonObject, "VerticalRecoil"));
         stats.setHorizontalRecoil(getDoubleOrDefault(jsonObject, "HorizontalRecoil"));
         stats.setDisabled(getBoolOrDefault(jsonObject, "Disabled"));
+        stats.setFirearmClass((FirearmClass) getEnumOrDefault(jsonObject, "Class"));
+        stats.setFirearmType((FirearmType) getEnumOrDefault(jsonObject, "Type"));
+        stats.setFireMode((FireMode) getEnumOrDefault(jsonObject, "Mode"));
 
         return stats;
     }
@@ -191,6 +197,30 @@ public class FirearmStatsLoader {
      */
     private static boolean getBoolOrDefault(JsonObject jsonObject, String key) {
         return jsonObject.has(key) && jsonObject.get(key).getAsBoolean();
+    }
+
+    /**
+     * Retrieves a enum value from a JSON object, or returns a default value if the key is not present.
+     *
+     * @param jsonObject The JSON object to retrieve the value from.
+     * @param key        The key of the value to retrieve.
+     * @return The enum value associated with the key, or {@code null} if the key is not present.
+     */
+    private static Object getEnumOrDefault(JsonObject jsonObject, String key) {
+        if (jsonObject.has(key)) {
+            return switch (key) {
+                case "Class" -> FirearmClass.valueOf(jsonObject.get(key).getAsString());
+                case "Type" -> FirearmType.valueOf(jsonObject.get(key).getAsString());
+                case "Mode" -> FireMode.valueOf(jsonObject.get(key).getAsString());
+                default -> null;
+            };
+        }
+        return switch (key) {
+            case "Class" -> FirearmClass.OTHER;
+            case "Type" -> FirearmType.OTHER;
+            case "Mode" -> FireMode.OTHER;
+            default -> null;
+        };
     }
 
 

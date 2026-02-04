@@ -1,4 +1,4 @@
-package lucis.lux.components.enums;
+package lucis.lux.hff.components.enums;
 
 public enum FireMode {
     SELECT_FIRE,

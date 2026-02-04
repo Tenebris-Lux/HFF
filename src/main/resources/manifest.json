@@ -15,5 +15,5 @@
   "OptionalDependencies": {},
   "DisabledByDefault": false,
   "IncludesAssetPack": true,
-  "Main": "lucis.lux.HFF"
+  "Main": "lucis.lux.hff.HFF"
 }

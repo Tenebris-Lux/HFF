@@ -1,4 +1,4 @@
-package lucis.lux.util;
+package lucis.lux.hff.util;
 
 
 import com.hypixel.hytale.codec.Codec;
@@ -8,8 +8,8 @@ import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import lucis.lux.components.FirearmStatsComponent;
-import lucis.lux.core.HFF;
+import lucis.lux.hff.components.FirearmStatsComponent;
+import lucis.lux.hff.HFF;
 
 import java.util.UUID;
 
