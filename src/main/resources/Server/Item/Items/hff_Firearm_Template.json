@@ -20,6 +20,13 @@
           "Failed": "Simple"
         }
       ]
+    },
+    "Secondary": {
+      "Interactions": [
+        {
+          "Type": "hff:toggle_aim"
+        }
+      ]
     }
   },
   "IconProperties": {
