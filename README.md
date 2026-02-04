@@ -32,7 +32,7 @@ animations, and physics.
 
 1. **Download** the latest release from the [Releases](https://github.com/Tenebris-Lux/HytaleFirearmFramework/releases)
    page.
-2. **Install** the `HFF.jar` on your Hytale Server (place it in the mods folder alongside your own mod).
+2. **Install** the `HFF.jar` on your Hytale Server (place it in the `mods/` folder alongside your own mod).
 
 ### 2. Developer Setup (Dependency)
 
@@ -48,7 +48,7 @@ Add `HFF` to your mods `manifest.json` to ensure the server loads the framework 
 ```
 
 **Build Dependency**
-Add the library to your project to access the classes. (Replace TAG with the correct tag in each case.)
+Add the library to your project to access the classes.
 
 _Option A: Maven (`pom.xml`)_
 
@@ -64,7 +64,7 @@ _Option A: Maven (`pom.xml`)_
 <dependency>
 <groupId>com.github.Tenebris-Lux</groupId>
 <artifactId>HytaleFirearmFramework</artifactId>
-<version>TAG</version>
+<version>0.2.0-Testing</version>
 <scope>provided</scope>
 </dependency>
 ```
@@ -77,7 +77,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'com.github.Tenebris-Lux:HytaleFirearmFramework:TAG'
+    compileOnly 'com.github.Tenebris-Lux:HytaleFirearmFramework:0.2.0-Testing'
 }
 ```
 
@@ -153,6 +153,13 @@ This file can be placed in **three locations** (and are loaded in this order):
 
    Extend or override the default interactions to customise weapon behaviour.
 
+3. **Create a new Bullet**
+
+   Projectiles are also defined by a JSON file. A good example can be found at
+   `src/main/resources/Server/ProjectileConfigs/Example_Projectile.json`.
+   For more information about Projectile Configurations
+   visit [Hytale Server Docs](https://hytale-docs.pages.dev/modding/systems/projectiles/).
+
 ---
 
 ## Project Structure
@@ -211,7 +218,7 @@ Contributions are welcome! Open a **Pull Request** or submit an **Issue** for bu
 
 ## License
 
-This project is licensed under the **MIT Licence**.
+This project is licensed under the [**MIT Licence**](./LICENSE).
 
 ---
 
@@ -222,4 +229,5 @@ This project is licensed under the **MIT Licence**.
 
 ## Attributions
 
-<a href="https://www.flaticon.com/free-icons/crosshair" title="crosshair icons">Crosshair icons created by Metami septiana - Flaticon</a>
+<a href="https://www.flaticon.com/free-icons/crosshair" title="crosshair icons">Crosshair icons created by Metami
+septiana - Flaticon</a>
