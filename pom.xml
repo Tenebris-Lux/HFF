@@ -6,7 +6,7 @@
 
     <groupId>com.github.Tenebris-Lux</groupId>
     <artifactId>HFF</artifactId>
-    <version>0.1.0-Testing</version>
+    <version>0.2.0-Testing</version>
 
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
