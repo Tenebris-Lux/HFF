@@ -1,0 +1,27 @@
+{
+  "Physics": {
+    "Type": "Standard",
+    "Gravity": 20.0,
+    "TerminalVelocityAir": 150,
+    "RotationMode": "VelocityDamped"
+  },
+  "Model": "Bullet_Blunderbuss",
+  "LaunchForce": 200.0,
+  "Interactions": {
+    "ProjectileHit": {
+      "Interactions": [
+        "Weapon_Crossbow_Primary_Combo_Condition",
+        {
+          "Type": "Replace",
+          "Var": "Standard_Projectile_Impact",
+          "DefaultValue": {
+            "Interactions": [
+              "Weapon_Crossbow_Effects_Standard_Projectile_Impact"
+            ]
+          }
+        },
+        "Common_Projectile_Despawn"
+      ]
+    }
+  }
+}
