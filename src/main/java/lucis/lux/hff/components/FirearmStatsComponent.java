@@ -13,23 +13,6 @@ import javax.annotation.Nullable;
 
 public class FirearmStatsComponent implements Component<EntityStore> {
 
-    private double rpm;
-    private double projectileVelocity;
-    private int projectileAmount;
-    private double spreadBase;
-    private double movementPenalty;
-    private double misfireChance;
-    private double jamChance;
-    private double verticalRecoil;
-    private double horizontalRecoil;
-    private FirearmClass firearmClass;
-    private FirearmType firearmType;
-    private FireMode fireMode;
-
-    private double elapsedTime = 0.0;
-
-    private boolean disabled;
-
     public static final BuilderCodec<FirearmStatsComponent> CODEC = BuilderCodec.builder(FirearmStatsComponent.class, FirearmStatsComponent::new)
             .append(new KeyedCodec<>("RPM", Codec.DOUBLE), (c, v) -> c.rpm = v, c -> c.rpm)
             .add()
@@ -52,11 +35,24 @@ public class FirearmStatsComponent implements Component<EntityStore> {
             .append(new KeyedCodec<>("Disabled", Codec.BOOLEAN), (c, v) -> c.disabled = v, c -> c.disabled)
             .add()
             .build();
-
     public static final KeyedCodec<FirearmStatsComponent> KEY = new KeyedCodec<>("HFF_FIREARM_COMPONENT", CODEC);
+    private double rpm;
+    private double projectileVelocity;
+    private int projectileAmount;
+    private double spreadBase;
+    private double movementPenalty;
+    private double misfireChance;
+    private double jamChance;
+    private double verticalRecoil;
+    private double horizontalRecoil;
+    private FirearmClass firearmClass;
+    private FirearmType firearmType;
+    private FireMode fireMode;
+    private double elapsedTime = 0.0;
+    private boolean disabled;
 
     public FirearmStatsComponent() {
-        this(-1f, -1f, -1, -1f, -1f, -1f, -1f, -1f, -1f, false);
+        this(-1f, -1f, -1, 0f, -1f, -1f, -1f, -1f, -1f, false);
     }
 
     public FirearmStatsComponent(double rpm, double projectileVelocity, int projectileAmount, double spreadBase, double movementPenalty, double misfireChance, double jamChance, double verticalRecoil, double horizontalRecoil, boolean disabled) {
@@ -99,52 +95,104 @@ public class FirearmStatsComponent implements Component<EntityStore> {
         return rpm;
     }
 
+    public void setRpm(double rpm) {
+        this.rpm = rpm;
+    }
+
     public double getProjectileVelocity() {
         return projectileVelocity;
+    }
+
+    public void setProjectileVelocity(double projectileVelocity) {
+        this.projectileVelocity = projectileVelocity;
     }
 
     public int getProjectileAmount() {
         return projectileAmount;
     }
 
+    public void setProjectileAmount(int projectileAmount) {
+        this.projectileAmount = projectileAmount;
+    }
+
     public double getSpreadBase() {
         return spreadBase;
+    }
+
+    public void setSpreadBase(double spreadBase) {
+        this.spreadBase = spreadBase;
     }
 
     public double getMovementPenalty() {
         return movementPenalty;
     }
 
+    public void setMovementPenalty(double movementPenalty) {
+        this.movementPenalty = movementPenalty;
+    }
+
     public double getMisfireChance() {
         return misfireChance;
+    }
+
+    public void setMisfireChance(double misfireChance) {
+        this.misfireChance = misfireChance;
     }
 
     public double getJamChance() {
         return jamChance;
     }
 
+    public void setJamChance(double jamChance) {
+        this.jamChance = jamChance;
+    }
+
     public double getVerticalRecoil() {
         return verticalRecoil;
+    }
+
+    public void setVerticalRecoil(double verticalRecoil) {
+        this.verticalRecoil = verticalRecoil;
     }
 
     public boolean isDisabled() {
         return disabled;
     }
 
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
+    }
+
     public double getHorizontalRecoil() {
         return horizontalRecoil;
+    }
+
+    public void setHorizontalRecoil(double horizontalRecoil) {
+        this.horizontalRecoil = horizontalRecoil;
     }
 
     public FirearmClass getFirearmClass() {
         return firearmClass;
     }
 
+    public void setFirearmClass(FirearmClass firearmClass) {
+        this.firearmClass = firearmClass;
+    }
+
     public FirearmType getFirearmType() {
         return firearmType;
     }
 
+    public void setFirearmType(FirearmType firearmType) {
+        this.firearmType = firearmType;
+    }
+
     public FireMode getFireMode() {
         return fireMode;
+    }
+
+    public void setFireMode(FireMode fireMode) {
+        this.fireMode = fireMode;
     }
 
     public double getRemainingTime() {
@@ -153,58 +201,6 @@ public class FirearmStatsComponent implements Component<EntityStore> {
 
     public boolean isTimeElapsed() {
         return elapsedTime >= 1 / rpm;
-    }
-
-    public void setRpm(double rpm) {
-        this.rpm = rpm;
-    }
-
-    public void setProjectileVelocity(double projectileVelocity) {
-        this.projectileVelocity = projectileVelocity;
-    }
-
-    public void setProjectileAmount(int projectileAmount) {
-        this.projectileAmount = projectileAmount;
-    }
-
-    public void setSpreadBase(double spreadBase) {
-        this.spreadBase = spreadBase;
-    }
-
-    public void setMovementPenalty(double movementPenalty) {
-        this.movementPenalty = movementPenalty;
-    }
-
-    public void setMisfireChance(double misfireChance) {
-        this.misfireChance = misfireChance;
-    }
-
-    public void setJamChance(double jamChance) {
-        this.jamChance = jamChance;
-    }
-
-    public void setVerticalRecoil(double verticalRecoil) {
-        this.verticalRecoil = verticalRecoil;
-    }
-
-    public void setHorizontalRecoil(double horizontalRecoil) {
-        this.horizontalRecoil = horizontalRecoil;
-    }
-
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
-    }
-
-    public void setFirearmClass(FirearmClass firearmClass) {
-        this.firearmClass = firearmClass;
-    }
-
-    public void setFirearmType(FirearmType firearmType) {
-        this.firearmType = firearmType;
-    }
-
-    public void setFireMode(FireMode fireMode) {
-        this.fireMode = fireMode;
     }
 
     public void increaseElapsedTime(float dt) {

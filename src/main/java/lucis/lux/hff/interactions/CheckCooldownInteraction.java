@@ -14,6 +14,7 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.CooldownHandler;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.SimpleInstantInteraction;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.FirearmStatsComponent;
 import lucis.lux.hff.interactions.events.OnCheckTimeout;
 import lucis.lux.hff.util.ComponentRefResult;
@@ -32,7 +33,7 @@ public class CheckCooldownInteraction extends SimpleInstantInteraction {
         Ref<EntityStore> ref = interactionContext.getEntity();
         Player player = commandBuffer.getComponent(ref, Player.getComponentType());
 
-        ComponentRefResult<FirearmStatsComponent> result = EnsureEntity.get(interactionContext, FirearmStatsComponent.class);
+        ComponentRefResult<FirearmStatsComponent> result = EnsureEntity.get(interactionContext, FirearmStatsComponent.class, HFF.get().getFirearmStatsComponentType(), interactionContext.getHeldItem().getItemId());
 
         IEventDispatcher<OnCheckTimeout, OnCheckTimeout> dispatcher = HytaleServer.get().getEventBus().dispatchFor(OnCheckTimeout.class);
 

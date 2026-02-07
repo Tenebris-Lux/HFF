@@ -7,6 +7,7 @@ import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.components.AimComponent;
+import lucis.lux.hff.components.AmmoComponent;
 import lucis.lux.hff.components.FirearmStatsComponent;
 import lucis.lux.hff.interactions.ToggleAimInteraction;
 import lucis.lux.hff.interactions.CheckCooldownInteraction;
@@ -23,6 +24,8 @@ public class HFF extends JavaPlugin {
     private static HFF instance;
     private ComponentType<EntityStore, FirearmStatsComponent> firearmStatsComponentType;
     private ComponentType<EntityStore, AimComponent> aimComponentComponentType;
+    private ComponentType<EntityStore, AmmoComponent> ammoComponentComponentType;
+
     private static ResourceType<EntityStore, RefKeeper> refKeeper;
 
     public HFF(@Nonnull JavaPluginInit init) {
@@ -46,6 +49,8 @@ public class HFF extends JavaPlugin {
 
         this.aimComponentComponentType = this.getEntityStoreRegistry().registerComponent(AimComponent.class, "AimComponent", AimComponent.CODEC);
         this.getEntityStoreRegistry().registerSystem(new AimSystem(this.aimComponentComponentType));
+
+        this.ammoComponentComponentType = this.getEntityStoreRegistry().registerComponent(AmmoComponent.class, "AmmoComponent", AmmoComponent.CODEC);
         // Resources
         refKeeper = this.getEntityStoreRegistry().registerResource(RefKeeper.class, RefKeeper::new);
     }
@@ -56,6 +61,10 @@ public class HFF extends JavaPlugin {
 
     public ComponentType<EntityStore, AimComponent> getAimComponentType() {
         return aimComponentComponentType;
+    }
+
+    public ComponentType<EntityStore, AmmoComponent> getAmmoComponentType() {
+        return ammoComponentComponentType;
     }
 
     public static ResourceType<EntityStore, RefKeeper> getRefKeeper() {

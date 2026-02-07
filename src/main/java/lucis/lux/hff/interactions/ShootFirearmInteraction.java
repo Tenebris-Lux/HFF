@@ -19,6 +19,7 @@ import com.hypixel.hytale.server.core.modules.projectile.ProjectileModule;
 import com.hypixel.hytale.server.core.modules.projectile.config.ProjectileConfig;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
+import lucis.lux.hff.components.AmmoComponent;
 import lucis.lux.hff.components.FirearmStatsComponent;
 import lucis.lux.hff.interactions.events.OnShoot;
 import lucis.lux.hff.util.ComponentRefResult;
@@ -28,6 +29,20 @@ import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 public class ShootFirearmInteraction extends SimpleInstantInteraction {
     public static final BuilderCodec<ShootFirearmInteraction> CODEC = BuilderCodec.builder(ShootFirearmInteraction.class, ShootFirearmInteraction::new, SimpleInstantInteraction.CODEC).build();
+
+    @NonNullDecl
+    private static Vector3d getDirection(FirearmStatsComponent stats, AmmoComponent ammo, Direction orientation) {
+        double spread = Math.toRadians(stats.getSpreadBase() * ammo.getSpreadMod());
+        double yaw = orientation.yaw + (Math.random() - 0.5) * 2 * spread;
+        double pitch = orientation.pitch + (Math.random() - 0.5) * 2 * spread;
+
+        double x = -Math.sin(yaw) * Math.cos(pitch);
+        double y = Math.sin(pitch);
+        double z = -Math.cos(yaw) * Math.cos(pitch);
+
+        Vector3d direction = new Vector3d(x, y, z).normalize();
+        return direction;
+    }
 
     @Override
     protected void firstRun(@NonNullDecl InteractionType interactionType, @NonNullDecl InteractionContext interactionContext, @NonNullDecl CooldownHandler cooldownHandler) {
@@ -49,10 +64,11 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
         Player player = commandBuffer.getComponent(ref, Player.getComponentType());
 
-        ComponentRefResult<FirearmStatsComponent> result = EnsureEntity.get(interactionContext, FirearmStatsComponent.class);
+        ComponentRefResult<FirearmStatsComponent> statsResult = EnsureEntity.get(interactionContext, FirearmStatsComponent.class, HFF.get().getFirearmStatsComponentType(), interactionContext.getHeldItem().getItemId());
+        ComponentRefResult<AmmoComponent> ammoResult = EnsureEntity.get(interactionContext, AmmoComponent.class, HFF.get().getAmmoComponentType(), "Example_Projectile");
 
-        FirearmStatsComponent stats = result.component();
-
+        FirearmStatsComponent stats = statsResult.component();
+        AmmoComponent ammo = ammoResult.component();
 
         // TODO: custom ProjectileComponent & insert the name here
         ProjectileConfig config = ProjectileConfig.getAssetMap().getAsset("Example_Projectile");
@@ -67,17 +83,19 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
         assert orientation != null;
 
-        double x = -Math.sin(orientation.yaw) * Math.cos(orientation.pitch);
-        double y = Math.sin(orientation.pitch);
-        double z = -Math.cos(orientation.yaw) * Math.cos(orientation.pitch);
-
-        Vector3d direction = new Vector3d(x, y, z).normalize();
+        Vector3d direction = getDirection(stats, ammo, orientation);
 
         if (ConfigManager.isDebugMode()) {
             HFF.get().getLogger().atInfo().log("Pitch: " + orientation.pitch);
             HFF.get().getLogger().atInfo().log("Yaw: " + orientation.yaw);
             HFF.get().getLogger().atInfo().log("Calculated direction: " + direction);
+            HFF.get().getLogger().atInfo().log("with spread " + stats.getSpreadBase() + "° * " + ammo.getSpreadMod());
         }
+
+        double baseVelocity = config.getLaunchForce();
+        double modifiedVelocity = baseVelocity * ammo.getVelocityMod();
+
+        direction = direction.scale(modifiedVelocity);
 
         Vector3d position = transform.getPosition().clone();
         position.y += 1.6;
