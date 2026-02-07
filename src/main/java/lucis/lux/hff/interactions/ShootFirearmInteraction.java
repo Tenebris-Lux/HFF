@@ -19,6 +19,7 @@ import com.hypixel.hytale.server.core.modules.projectile.ProjectileModule;
 import com.hypixel.hytale.server.core.modules.projectile.config.ProjectileConfig;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
+import lucis.lux.hff.components.AimComponent;
 import lucis.lux.hff.components.AmmoComponent;
 import lucis.lux.hff.components.FirearmStatsComponent;
 import lucis.lux.hff.interactions.events.OnShoot;
@@ -31,8 +32,9 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
     public static final BuilderCodec<ShootFirearmInteraction> CODEC = BuilderCodec.builder(ShootFirearmInteraction.class, ShootFirearmInteraction::new, SimpleInstantInteraction.CODEC).build();
 
     @NonNullDecl
-    private static Vector3d getDirection(FirearmStatsComponent stats, AmmoComponent ammo, Direction orientation) {
+    private static Vector3d getDirection(FirearmStatsComponent stats, AmmoComponent ammo, AimComponent aim, Direction orientation) {
         double spread = Math.toRadians(stats.getSpreadBase() * ammo.getSpreadMod());
+        if (aim != null && aim.isAiming()) spread *= 0.7;
         double yaw = orientation.yaw + (Math.random() - 0.5) * 2 * spread;
         double pitch = orientation.pitch + (Math.random() - 0.5) * 2 * spread;
 
@@ -83,7 +85,9 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
         assert orientation != null;
 
-        Vector3d direction = getDirection(stats, ammo, orientation);
+        AimComponent aimComponent = commandBuffer.getComponent(ref, HFF.get().getAimComponentType());
+
+        Vector3d direction = getDirection(stats, ammo, aimComponent, orientation);
 
         if (ConfigManager.isDebugMode()) {
             HFF.get().getLogger().atInfo().log("Pitch: " + orientation.pitch);
