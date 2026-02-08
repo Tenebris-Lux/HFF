@@ -210,4 +210,8 @@ public class FirearmStatsComponent implements Component<EntityStore> {
     public void resetElapsedTime() {
         this.elapsedTime = 0.0;
     }
+
+    public float getCooldown() {
+        return (float) (60 / rpm);
+    }
 }

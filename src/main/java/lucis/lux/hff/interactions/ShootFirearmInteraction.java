@@ -3,7 +3,6 @@ package lucis.lux.hff.interactions;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.event.IEventDispatcher;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.protocol.Direction;
@@ -17,6 +16,7 @@ import com.hypixel.hytale.server.core.modules.interaction.interaction.CooldownHa
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.SimpleInstantInteraction;
 import com.hypixel.hytale.server.core.modules.projectile.ProjectileModule;
 import com.hypixel.hytale.server.core.modules.projectile.config.ProjectileConfig;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.AimComponent;
@@ -49,35 +49,46 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
     @Override
     protected void firstRun(@NonNullDecl InteractionType interactionType, @NonNullDecl InteractionContext interactionContext, @NonNullDecl CooldownHandler cooldownHandler) {
 
+        ComponentRefResult<FirearmStatsComponent> statsResult = EnsureEntity.get(interactionContext, FirearmStatsComponent.class, HFF.get().getFirearmStatsComponentType(), interactionContext.getHeldItem().getItemId());
+
+
+        FirearmStatsComponent stats = statsResult.component();
+
+
+        float tickRate = Universe.get().getDefaultWorld().getTps();
+
+        double cooldownMs = 1000 * stats.getCooldown();
+        double tickMs = 1000 / tickRate;
+
+        int shotsPerTick = (int) Math.floor(tickMs / cooldownMs);
+
+        if (shotsPerTick > 0) {
+            for (int i = 0; i < shotsPerTick; i++) {
+                this.spawnProjectile(stats, interactionContext, "Example_Projectile");
+            }
+        } else {
+            this.spawnProjectile(stats, interactionContext, "Example_Projectile");
+        }
+
+
+    }
+
+    private void spawnProjectile(FirearmStatsComponent stats, InteractionContext interactionContext, String configName) {
         CommandBuffer<EntityStore> commandBuffer = interactionContext.getCommandBuffer();
         if (commandBuffer == null) {
             interactionContext.getState().state = InteractionState.Failed;
             return;
         }
 
-        Store<EntityStore> store = commandBuffer.getExternalData().getStore();
-
-        if (store == null) {
-            interactionContext.getState().state = InteractionState.Failed;
-            return;
-        }
-
         Ref<EntityStore> ref = interactionContext.getEntity();
 
-        Player player = commandBuffer.getComponent(ref, Player.getComponentType());
-
-        ComponentRefResult<FirearmStatsComponent> statsResult = EnsureEntity.get(interactionContext, FirearmStatsComponent.class, HFF.get().getFirearmStatsComponentType(), interactionContext.getHeldItem().getItemId());
-        ComponentRefResult<AmmoComponent> ammoResult = EnsureEntity.get(interactionContext, AmmoComponent.class, HFF.get().getAmmoComponentType(), "Example_Projectile");
-
-        FirearmStatsComponent stats = statsResult.component();
-        AmmoComponent ammo = ammoResult.component();
-
         // TODO: custom ProjectileComponent & insert the name here
-        ProjectileConfig config = ProjectileConfig.getAssetMap().getAsset("Example_Projectile");
+        ProjectileConfig config = ProjectileConfig.getAssetMap().getAsset(configName);
 
         if (config == null) {
             return;
         }
+
         TransformComponent transform = commandBuffer.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) return;
 
@@ -85,15 +96,21 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
         assert orientation != null;
 
+        ComponentRefResult<AmmoComponent> ammoResult = EnsureEntity.get(interactionContext, AmmoComponent.class, HFF.get().getAmmoComponentType(), "Example_Projectile");
+        AmmoComponent ammo = ammoResult.component();
+
+        Player player = commandBuffer.getComponent(ref, Player.getComponentType());
         AimComponent aimComponent = commandBuffer.getComponent(ref, HFF.get().getAimComponentType());
 
         Vector3d direction = getDirection(stats, ammo, aimComponent, orientation);
 
         if (ConfigManager.isDebugMode()) {
-            HFF.get().getLogger().atInfo().log("Pitch: " + orientation.pitch);
-            HFF.get().getLogger().atInfo().log("Yaw: " + orientation.yaw);
-            HFF.get().getLogger().atInfo().log("Calculated direction: " + direction);
-            HFF.get().getLogger().atInfo().log("with spread " + stats.getSpreadBase() + "° * " + ammo.getSpreadMod());
+            HFF.get().getLogger().atInfo().log(
+                    "Pitch: " + orientation.pitch +
+                            "\nYaw: " + orientation.yaw +
+                            "\nCalculated direction: " + direction +
+                            "\nwith spread " + stats.getSpreadBase() + "° * " + ammo.getSpreadMod() +
+                            "\n " + System.currentTimeMillis());
         }
 
         double baseVelocity = config.getLaunchForce();
