@@ -27,6 +27,13 @@
           "Type": "hff:toggle_aim"
         }
       ]
+    },
+    "Use": {
+      "Interactions": [
+        {
+          "Type": "hff:reload"
+        }
+      ]
     }
   },
   "IconProperties": {

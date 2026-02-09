@@ -48,7 +48,6 @@ public class FirearmSystem extends EntityTickingSystem<EntityStore> {
         Ref<EntityStore> ref = archetypeChunk.getReferenceTo(index);
 
         assert firearmStats != null;
-        firearmStats.increaseElapsedTime(v);
     }
 
     /**

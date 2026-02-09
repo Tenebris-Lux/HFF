@@ -1,6 +1,7 @@
 package lucis.lux.hff.interactions;
 
 
+import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Ref;
@@ -12,7 +13,9 @@ import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.InteractionContext;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.CooldownHandler;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.config.RootInteraction;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.SimpleInstantInteraction;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.FirearmStatsComponent;
@@ -21,6 +24,8 @@ import lucis.lux.hff.util.ComponentRefResult;
 import lucis.lux.hff.util.ConfigManager;
 import lucis.lux.hff.util.EnsureEntity;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
+
+import java.util.UUID;
 
 public class CheckCooldownInteraction extends SimpleInstantInteraction {
 
@@ -49,16 +54,17 @@ public class CheckCooldownInteraction extends SimpleInstantInteraction {
 
         FirearmStatsComponent stats = result.component();
 
-
-        if (!stats.isTimeElapsed()) {
-            if (ConfigManager.isDebugMode()) {
-                player.sendMessage(Message.raw("Remaining Cooldown: " + stats.getRemainingTime()));
+        UUID uuid = interactionContext.getHeldItem().getFromMetadataOrNull("HFF_METADATA", Codec.UUID_BINARY);
+        if (uuid != null) {
+            if (cooldownHandler.isOnCooldown(new RootInteraction(), uuid.toString(), stats.getCooldown(), new float[]{stats.getCooldown()}, false)) {
+                if (ConfigManager.isDebugMode()) {
+                    player.sendMessage(Message.raw("Max Cooldown: " + cooldownHandler.getCooldown(uuid.toString()).getCooldown() + " TPS: " + Universe.get().getDefaultWorld().getTps()));
+                }
+                interactionContext.getState().state = InteractionState.Failed;
+                return;
             }
-            interactionContext.getState().state = InteractionState.Failed;
-            return;
         }
 
-        stats.resetElapsedTime();
         this.next = "hff:shoot_firearm";
     }
 }

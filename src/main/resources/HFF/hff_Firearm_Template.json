@@ -6,5 +6,6 @@
   "misfireChance": 0.0,
   "jamChance": 0.0,
   "verticalRecoil": 2.0,
-  "horizontalRecoil": 0.5
+  "horizontalRecoil": 0.5,
+  "firearmType": "MODERN"
 }

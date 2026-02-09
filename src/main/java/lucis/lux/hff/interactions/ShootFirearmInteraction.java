@@ -50,10 +50,12 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
     protected void firstRun(@NonNullDecl InteractionType interactionType, @NonNullDecl InteractionContext interactionContext, @NonNullDecl CooldownHandler cooldownHandler) {
 
         ComponentRefResult<FirearmStatsComponent> statsResult = EnsureEntity.get(interactionContext, FirearmStatsComponent.class, HFF.get().getFirearmStatsComponentType(), interactionContext.getHeldItem().getItemId());
-
-
         FirearmStatsComponent stats = statsResult.component();
 
+        ComponentRefResult<AmmoComponent> ammoResult = EnsureEntity.get(interactionContext, AmmoComponent.class, HFF.get().getAmmoComponentType(), "Example_Projectile");
+        AmmoComponent ammo = ammoResult.component();
+
+        ammo.setReloading(false);
 
         float tickRate = Universe.get().getDefaultWorld().getTps();
 
@@ -64,16 +66,18 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
         if (shotsPerTick > 0) {
             for (int i = 0; i < shotsPerTick; i++) {
-                this.spawnProjectile(stats, interactionContext, "Example_Projectile");
+                if (ammo.useAmmo())
+                    this.spawnProjectile(stats, ammo, interactionContext, "Example_Projectile");
             }
         } else {
-            this.spawnProjectile(stats, interactionContext, "Example_Projectile");
+            if (ammo.useAmmo())
+                this.spawnProjectile(stats, ammo, interactionContext, "Example_Projectile");
         }
 
 
     }
 
-    private void spawnProjectile(FirearmStatsComponent stats, InteractionContext interactionContext, String configName) {
+    private void spawnProjectile(FirearmStatsComponent stats, AmmoComponent ammo, InteractionContext interactionContext, String configName) {
         CommandBuffer<EntityStore> commandBuffer = interactionContext.getCommandBuffer();
         if (commandBuffer == null) {
             interactionContext.getState().state = InteractionState.Failed;
@@ -95,9 +99,6 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
         Direction orientation = transform.getSentTransform().lookOrientation;
 
         assert orientation != null;
-
-        ComponentRefResult<AmmoComponent> ammoResult = EnsureEntity.get(interactionContext, AmmoComponent.class, HFF.get().getAmmoComponentType(), "Example_Projectile");
-        AmmoComponent ammo = ammoResult.component();
 
         Player player = commandBuffer.getComponent(ref, Player.getComponentType());
         AimComponent aimComponent = commandBuffer.getComponent(ref, HFF.get().getAimComponentType());

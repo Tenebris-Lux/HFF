@@ -6,6 +6,7 @@ import com.hypixel.hytale.component.*;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
+import lucis.lux.hff.resources.RefKeeper;
 
 import java.util.UUID;
 

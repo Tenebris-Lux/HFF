@@ -2,5 +2,6 @@
   "filePath": "HFF/",
   "archivePath": "mods/hff.jar",
   "pathInArchive": "HFF/",
-  "archiveFirst": true
+  "archiveFirst": true,
+  "debugMode": true
 }

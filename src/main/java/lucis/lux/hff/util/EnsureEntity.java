@@ -12,6 +12,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.AmmoComponent;
 import lucis.lux.hff.components.FirearmStatsComponent;
+import lucis.lux.hff.resources.RefKeeper;
 
 import java.util.UUID;
 
@@ -39,7 +40,8 @@ public class EnsureEntity {
                     if (component != null) {
                         if (type == FirearmStatsComponent.class) {
                             FirearmStatsComponent firearmStats = (FirearmStatsComponent) component;
-                            isDisabled = ((FirearmStatsComponent) component).isDisabled();
+                            isDisabled = firearmStats.isDisabled();
+                            firearmStats.setPlayerRef(playerRef);
                         }
                         return new ComponentRefResult<>(component, entityRef, false, isDisabled);
                     }

@@ -4,6 +4,7 @@ import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Component;
+import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.components.enums.FireMode;
 import lucis.lux.hff.components.enums.FirearmClass;
@@ -34,11 +35,20 @@ public class FirearmStatsComponent implements Component<EntityStore> {
             .add()
             .append(new KeyedCodec<>("Disabled", Codec.BOOLEAN), (c, v) -> c.disabled = v, c -> c.disabled)
             .add()
+            .append(new KeyedCodec<>("ReloadTime", Codec.FLOAT), (c, v) -> c.reloadTime = v, c -> c.reloadTime)
+            .add()
+            .append(new KeyedCodec<>("ProjectileCapacity", Codec.INTEGER), (c, v) -> c.projectileCapacity = v, c -> c.projectileCapacity)
+            .add()
+            .append(new KeyedCodec<>("AmmoName", Codec.STRING_ARRAY), (c, v) -> c.ammoName = v, c -> c.ammoName)
+            .add()
             .build();
     public static final KeyedCodec<FirearmStatsComponent> KEY = new KeyedCodec<>("HFF_FIREARM_COMPONENT", CODEC);
+    Ref<EntityStore> playerRef;
+    private float reloadTime;
     private double rpm;
     private double projectileVelocity;
     private int projectileAmount;
+    private int projectileCapacity;
     private double spreadBase;
     private double movementPenalty;
     private double misfireChance;
@@ -48,14 +58,14 @@ public class FirearmStatsComponent implements Component<EntityStore> {
     private FirearmClass firearmClass;
     private FirearmType firearmType;
     private FireMode fireMode;
-    private double elapsedTime = 0.0;
     private boolean disabled;
+    private String[] ammoName;
 
     public FirearmStatsComponent() {
-        this(-1f, -1f, -1, 0f, -1f, -1f, -1f, -1f, -1f, false);
+        this(1f, 1f, 1, 0f, 0f, 0f, 0f, 0f, 0f, false, 1, 1.0f, new String[0]);
     }
 
-    public FirearmStatsComponent(double rpm, double projectileVelocity, int projectileAmount, double spreadBase, double movementPenalty, double misfireChance, double jamChance, double verticalRecoil, double horizontalRecoil, boolean disabled) {
+    public FirearmStatsComponent(double rpm, double projectileVelocity, int projectileAmount, double spreadBase, double movementPenalty, double misfireChance, double jamChance, double verticalRecoil, double horizontalRecoil, boolean disabled, int projectileCapacity, float reloadTime, String[] ammoName) {
         this.verticalRecoil = verticalRecoil;
         this.spreadBase = spreadBase;
         this.rpm = rpm;
@@ -66,8 +76,9 @@ public class FirearmStatsComponent implements Component<EntityStore> {
         this.jamChance = jamChance;
         this.horizontalRecoil = horizontalRecoil;
         this.disabled = disabled;
-
-        this.elapsedTime = 0.0;
+        this.projectileCapacity = projectileCapacity;
+        this.reloadTime = reloadTime;
+        this.ammoName = ammoName;
     }
 
     public FirearmStatsComponent(FirearmStatsComponent other) {
@@ -80,8 +91,11 @@ public class FirearmStatsComponent implements Component<EntityStore> {
         this.rpm = other.rpm;
         this.spreadBase = other.spreadBase;
         this.verticalRecoil = other.verticalRecoil;
-        this.elapsedTime = other.elapsedTime;
+        this.projectileCapacity = other.projectileCapacity;
         this.disabled = other.disabled;
+        this.reloadTime = other.reloadTime;
+        this.ammoName = other.ammoName;
+        this.playerRef = other.playerRef;
     }
 
     @Nullable
@@ -195,23 +209,39 @@ public class FirearmStatsComponent implements Component<EntityStore> {
         this.fireMode = fireMode;
     }
 
-    public double getRemainingTime() {
-        return (1 / rpm) - elapsedTime;
-    }
-
-    public boolean isTimeElapsed() {
-        return elapsedTime >= 1 / rpm;
-    }
-
-    public void increaseElapsedTime(float dt) {
-        this.elapsedTime += dt;
-    }
-
-    public void resetElapsedTime() {
-        this.elapsedTime = 0.0;
-    }
-
     public float getCooldown() {
         return (float) (60 / rpm);
+    }
+
+    public int getProjectileCapacity() {
+        return projectileCapacity;
+    }
+
+    public void setProjectileCapacity(int projectileCapacity) {
+        this.projectileCapacity = projectileCapacity;
+    }
+
+    public float getReloadTime() {
+        return reloadTime;
+    }
+
+    public void setReloadTime(float reloadTime) {
+        this.reloadTime = reloadTime;
+    }
+
+    public String[] getAmmoName() {
+        return ammoName;
+    }
+
+    public void setAmmoName(String[] ammoName) {
+        this.ammoName = ammoName;
+    }
+
+    public Ref<EntityStore> getPlayerRef() {
+        return playerRef;
+    }
+
+    public void setPlayerRef(Ref<EntityStore> playerRef) {
+        this.playerRef = playerRef;
     }
 }
