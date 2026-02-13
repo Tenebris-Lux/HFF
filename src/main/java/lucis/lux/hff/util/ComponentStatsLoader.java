@@ -3,10 +3,6 @@ package lucis.lux.hff.util;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import lucis.lux.hff.HFF;
-import lucis.lux.hff.components.FirearmStatsComponent;
-import lucis.lux.hff.components.enums.FireMode;
-import lucis.lux.hff.components.enums.FirearmClass;
-import lucis.lux.hff.components.enums.FirearmType;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -20,84 +16,50 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * The {@code FirearmStatsLoader} class is responsible for loading firearm statistics
- * from various sources such as ZIP archives, JAR resources, and the file system.
- * It uses the configuration provided by the {@link ConfigManager} to determine the paths
- * and the order in which to search for the statistics.
+ * The {@code ComponentStatsLoader} class is responsible for loading component statistics
+ * (such as firearm statistics) from various sources such as ZIP archives, JAR resources,
+ * and the file system. It uses the configuration provided by the {@link ConfigManager}
+ * to determine the paths and the order in which to search for the statistics.
+ *
+ * <p>This class supports loading statistics dor any component type, provided the component
+ * class sis specified during instantiation. It is designed to be flexible and extensible,
+ * allowing for easy integration with different types of components and statistics.</p>
+ *
+ * <p>The loading process follows this order:</p>
+ * <ol>
+ *     <li>From ZIP archives (if configured to check archives first).</li>
+ *     <li>From the file system.</li>
+ *     <li>From JAR resources (if configured to check archives last).</li>
+ * </ol>
+ *
+ * <p>If no statistics are found, a new component instance with default values is returned.</p>
+ *
+ * @param <T> The type of the component whose statistics are to be loaded.
  */
 public class ComponentStatsLoader<T> {
 
+    /**
+     * The class of the component whose statistics are to be loaded.
+     */
     private final Class<T> componentClass;
 
+    /**
+     * Constructs a new {@code ComponentStatsLoader} for the specified component class.
+     *
+     * @param componentClass The class of the component whose statistics are to be loaded.
+     */
     public ComponentStatsLoader(Class<T> componentClass) {
         this.componentClass = componentClass;
     }
 
     /**
-     * Retrieves a double value from a JSON object, or returns a default value if the key is not present.
-     *
-     * @param jsonObject The JSON object to retrieve the value from.
-     * @param key        The key of the value to retrieve.
-     * @return The double value associated with the key, or -1.0 if the key is not present.
-     */
-    private static double getDoubleOrDefault(JsonObject jsonObject, String key) {
-        return jsonObject.has(key) ? jsonObject.get(key).getAsDouble() : -1.0;
-    }
-
-    /**
-     * Retrieves an integer value from a JSON object, or returns a default value if the key is not present.
-     *
-     * @param jsonObject The JSON object to retrieve the value from.
-     * @param key        The key of the value to retrieve.
-     * @return The integer value associated with the key, or -1 if the key is not present.
-     */
-    private static int getIntOrDefault(JsonObject jsonObject, String key) {
-        return jsonObject.has(key) ? jsonObject.get(key).getAsInt() : -1;
-    }
-
-    /**
-     * Retrieves a boolean value from a JSON object, or returns a default value if the key is not present.
-     *
-     * @param jsonObject The JSON object to retrieve the value from.
-     * @param key        The key of the value to retrieve.
-     * @return The boolean value associated with the key, or {@code false} if the key is not present.
-     */
-    private static boolean getBoolOrDefault(JsonObject jsonObject, String key) {
-        return jsonObject.has(key) && jsonObject.get(key).getAsBoolean();
-    }
-
-    /**
-     * Retrieves a enum value from a JSON object, or returns a default value if the key is not present.
-     *
-     * @param jsonObject The JSON object to retrieve the value from.
-     * @param key        The key of the value to retrieve.
-     * @return The enum value associated with the key, or {@code null} if the key is not present.
-     */
-    private static Object getEnumOrDefault(JsonObject jsonObject, String key) {
-        if (jsonObject.has(key)) {
-            return switch (key) {
-                case "Class" -> FirearmClass.valueOf(jsonObject.get(key).getAsString());
-                case "Type" -> FirearmType.valueOf(jsonObject.get(key).getAsString());
-                case "Mode" -> FireMode.valueOf(jsonObject.get(key).getAsString());
-                default -> null;
-            };
-        }
-        return switch (key) {
-            case "Class" -> FirearmClass.OTHER;
-            case "Type" -> FirearmType.OTHER;
-            case "Mode" -> FireMode.OTHER;
-            default -> null;
-        };
-    }
-
-    /**
-     * Attempts to load firearm statistics for the given item ID from available sources.
+     * Attempts to load component statistics for the given item ID from available sources.
      * The method tries to load the statistics from a ZIP archive, the file system, or a JAR resource,
      * depending on the configuration.
      *
      * @param itemId The ID of the item for which to load the statistics.
-     * @return A {@link FirearmStatsComponent} instance containing the loaded statistics,
-     * or the new instance with default values if no statistics where found.
+     * @return An instance of the component containing the loaded statistics,
+     * or a new instance with default values if no statistics where found.
      */
     public T loadStatsFromResource(String itemId) {
         String fileName = itemId.replace(':', '_') + ".json";
@@ -128,11 +90,11 @@ public class ComponentStatsLoader<T> {
     }
 
     /**
-     * Attempts to load the firearm statistics from a ZIP or JAR archive.
+     * Attempts to load the component statistics from a ZIP or JAR archive.
      *
      * @param resourcePath The path to the archive.
      * @param entryPath    The path to the entry within the archive.
-     * @return A {@link FirearmStatsComponent} instance containing the loaded statistics,
+     * @return An instance of the component containing the loaded statistics,
      * or {@code null} if the entry was not found or an error occurred.
      */
     private T tryLoadFromArchive(String resourcePath, String entryPath) {
@@ -175,11 +137,11 @@ public class ComponentStatsLoader<T> {
     }
 
     /**
-     * Attempts to load firearm statistics from the file system.
+     * Attempts to load component statistics from the file system.
      *
      * @param basePath The base path where the statistics file is located.
      * @param fileName The name of the statistics file.
-     * @return A {@link FirearmStatsComponent} instance containing the loaded statistics,
+     * @return An instance of the component containing the loaded statistics,
      * or {@code null} if the file was not found or an error occurred.
      */
     private T tryLoadFromFileSystem(String basePath, String fileName) {
@@ -206,6 +168,11 @@ public class ComponentStatsLoader<T> {
         }
     }
 
+    /**
+     * Creates a new instance of the component with default values.
+     *
+     * @return A new instance of the component.
+     */
     private T createDefaultComponent() {
         try {
             return componentClass.getDeclaredConstructor().newInstance();
@@ -216,10 +183,10 @@ public class ComponentStatsLoader<T> {
     }
 
     /**
-     * Sets the firearm statistics from a JSON object.
+     * Sets the statistics from a JSON object to the given component.
      *
+     * @param component  The component to set the statistics on.
      * @param jsonObject The JSON object containing the statistics.
-     * @return A {@link FirearmStatsComponent} instance with the statistics set.
      */
     private void setStatsFromJson(T component, JsonObject jsonObject) {
 
@@ -250,6 +217,13 @@ public class ComponentStatsLoader<T> {
         }
     }
 
+    /**
+     * Retrieves an enum constant from the specified enum class with the given name.
+     *
+     * @param enumClass The class of the enum.
+     * @param enumValue The name of the enum constant.
+     * @return The enum constant, or {@code null} if the constant was not found.
+     */
     private Object getEnumConstant(Class<?> enumClass, String enumValue) {
         try {
             return Enum.valueOf((Class<Enum>) enumClass, enumValue);

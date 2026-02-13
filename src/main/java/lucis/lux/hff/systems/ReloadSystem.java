@@ -25,13 +25,24 @@ import java.util.UUID;
  * <ul>
  *     <li>Checks if the player is moving (not idle) using the {@link MovementStatesComponent}.</li>
  *     <li>Verifies if the player has switched weapons by comparing the current weapon's UUID with the stored reference.</li>
- *     <li>Interrupts the reloading process if either of the above conditions is met.</li>
+ *     <li>Interrupts the reloading process if the player moves or switches weapons.</li>
  * </ul></p>
  *
  * <p>The system is designed to work within the Entity Component System (ECS) architecture of Hytale
  * and is registered during plugin initialization. It only ticks entities that have an {@link AmmoComponent}.</p>
+ *
+ * <p>This system is part of the HFF (Hytale Firearm Framework) plugin and is used in conjunction with
+ * the {@link AmmoComponent} and {@link FirearmStatsComponent} to provide realistic firearm reloading mechanics.</p>
+ *
+ * @see EntityTickingSystem
+ * @see AmmoComponent
+ * @see FirearmStatsComponent
+ * @see MovementStatesComponent
  */
 public class ReloadSystem extends EntityTickingSystem {
+    /**
+     * The component type for ammunition, used to identify entities with ammo components.
+     */
     private final ComponentType<EntityStore, AmmoComponent> ammoComponentType;
 
     /**
@@ -46,6 +57,14 @@ public class ReloadSystem extends EntityTickingSystem {
     /**
      * Ticks the system for each entity with an {@link AmmoComponent}. This method checks if the player
      * is moving or has switched weapons and interrupts the reloading process if necessary.
+     *
+     * <p>The following steps are performed during each tick:</p>
+     * <ol>
+     *     <li>Retrieves the {@link AmmoComponent} and {@link FirearmStatsComponent} for the entity.</li>
+     *     <li>Gets the player's {@link MovementStatesComponent} to check for movement.</li>
+     *     <li>Retrieves the UUID of the currently held weapon from the item's metadata.</li>
+     *     <li>If the player is moving or the weapon has been switched, the reloading process is interrupted.</li>
+     * </ol>
      *
      * @param v              The delta time since the last tick.
      * @param i              The index of the entity in the archetype chunk.
@@ -70,9 +89,10 @@ public class ReloadSystem extends EntityTickingSystem {
         RefKeeper keeper = (RefKeeper) commandBuffer.getResource(HFF.getRefKeeper());
 
         if (ammo == null || movementState == null) {
-            return; // Skip tick
+            return; // Skip tick if components are missing
         }
 
+        // Interrupt reloading if the player is moving or the weapon has been switched
         if (!movementState.getMovementStates().idle || keeper.getRef(uuid) != ref) {
             ammo.setReloading(false);
         }

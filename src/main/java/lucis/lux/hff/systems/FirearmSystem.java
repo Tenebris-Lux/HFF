@@ -15,7 +15,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableDecl;
  * updating their elapsed time and handling firearm-related logic.
  *
  * <p>This system is part of the Entity Component System (ECS) architecture in Hytale and
- * is registered during plugin initialisation.</p>
+ * is registered during plugin initialization.</p>
  */
 public class FirearmSystem extends EntityTickingSystem<EntityStore> {
 

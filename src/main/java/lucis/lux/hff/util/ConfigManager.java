@@ -13,12 +13,22 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * The {@code ConfigManager} call is responsible for loading and managing configuration settings
- * for the HFF framework. It supports loading configurations from various sources, including ZIP
- * archives, the file system, and the application's JAR resource.
+ * The {@code ConfigManager} class is responsible for loading and managing configuration settings
+ * for the HFF (Hytale Firearm Framework) plugin. It supports loading configurations from various sources,
+ * including ZIP archives, the file system, and the application's JAR resource.
  *
  * <p>This class provides methods to load configurations from different sources and read configuration
- * values into static fields for further use.</p>
+ * values into static fields for further use. The configuration is used to determine paths for assets,
+ * behaviour flags, and other settings required by the framework.</p>
+ *
+ * <p>The configuration is loaded in the following order:</p>
+ * <ol>
+ *     <li>From the running ZIP archive (if applicable)</li>
+ *     <li>From the file system (if a configuration file exists).</li>
+ *     <li>From the application's JAR resources (as a failback).</li>
+ * </ol>
+ *
+ * <p>If no configuration is found, default values are used.</p>
  */
 public class ConfigManager {
     /**
@@ -59,23 +69,28 @@ public class ConfigManager {
 
     /**
      * Loads the configuration from available sources. The method attempts to load the configuration
-     * from ZIP archive, the file system, or the application's JAR resources, in that order.
+     * from a ZIP archive, the file system, or the application's JAR resources, in that order.
+     *
+     * <p>If the configuration is successfully loaded from any source, the method returns early.
+     * If no configuration is found, default values are retained.</p>
      */
     public static void loadConfig() {
         try {
             Path configPath = getCurrentArchivePath();
 
+            // Try to load from ZIP archive
             if (configPath != null && loadConfigFromZip(configPath)) {
                 return;
             }
             configPath = Paths.get("hff_config.json").toAbsolutePath();
 
-
+            // Try to load from file system
             if (Files.exists(configPath)) {
                 loadConfigFromFileSystem(configPath);
                 return;
             }
-            // inside the users JAR
+
+            // Fallback: Load from JAR resources
             loadConfigFromJar();
         } catch (Exception e) {
             HFF.get().getLogger().atSevere().log("Error when loading config: " + e.getMessage());
@@ -157,22 +172,47 @@ public class ConfigManager {
         if (config.has("debugMode")) debugMode = config.get("debugMode").getAsBoolean();
     }
 
+    /**
+     * Returns the current file path for configurations.
+     *
+     * @return The current file path.
+     */
     public static String getFilePath() {
         return filePath;
     }
 
+    /**
+     * Returns the current archive path for configurations.
+     *
+     * @return The current archive path.
+     */
     public static String getArchivePath() {
         return archivePath;
     }
 
+    /**
+     * Returns the current path inside archives for configurations.
+     *
+     * @return The current path inside archives.
+     */
     public static String getPathInArchive() {
         return pathInArchive;
     }
 
+    /**
+     * Returns whether archives should be checked first for configuration.
+     *
+     * @return {@code true} if archives should be checked first, otherwise {@code false}.
+     */
     public static boolean isArchiveFirst() {
         return archiveFirst;
     }
 
+    /**
+     * Returns whether debug mode is enabled.
+     *
+     * @return {@code true} if debug mode is enabled, otherwise {@code false}.
+     */
     public static boolean isDebugMode() {
         return debugMode;
     }

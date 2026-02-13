@@ -14,14 +14,28 @@ import java.util.UUID;
  * {@link UUID} and {@link Ref<EntityStore>}. It allows storing, retrieving, and deleting
  * references to entities in an {@link EntityStore}.
  *
- * <p>This class is designed to be used as a resource in the Hytale entity-component system,
- * ensuring that each entity reference is uniquely identified by a {@link UUID}.
- * It provides thread-safe operations for managing entity references.</p>
+ * <p>This class is designed to be used as a resource in the Hytale Entity Component System
+ * (ECS) architecture, ensuring that each entity reference is uniquely identified by a {@link UUID}.
+ * It provides thread-safe operations for managing entity references, which is essential
+ * for tracking entities across different systems and interactions.</p>
+ *
+ * <p>This resource is particularly useful in the HFF (Hytale Firearm Framework) plugin for
+ * managing references to entities such as firearms, ammunition, or other interactive items.
+ * It ensures that references can be retrieved and managed efficiently, even when entities
+ * are dynamically created or destroyed.</p>
+ *
+ * <p>Example use cases include:</p>
+ * <ul>
+ *     <li>Tracking references to firearms attached to items in a player's inventory.</li>
+ *     <li>Managing references to ammunition or other consumable items.</li>
+ *     <li>Ensuring that entity-references remain valid across different game states or interactions.</li>
+ * </ul>
  */
 public class RefKeeper implements Resource<EntityStore> {
 
     /**
      * A map to store the relationship between UUIDs and entity references.
+     * This map is static to ensure that references are maintained globally across the plugin.
      */
     private static final Map<UUID, Ref<EntityStore>> entityMap = new HashMap<>();
 
@@ -59,6 +73,7 @@ public class RefKeeper implements Resource<EntityStore> {
 
     /**
      * Deletes the mapping  for the given UUID if the referenced entity is no longer valid.
+     * This method checks if the entity reference is still valid before deleting the mapping.
      *
      * @param uuid The UUID of the mapping to delete.
      * @return {@code true} if the mapping was deleted, {@code false} if the entity is still valid.
