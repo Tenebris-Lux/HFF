@@ -28,9 +28,47 @@ import lucis.lux.hff.util.ConfigManager;
 import lucis.lux.hff.util.EnsureEntity;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
+/**
+ * The {@code ShootFirearmInteraction} class is a {@link SimpleInstantInteraction} responsible for handling
+ * the shooting mechanism of firearms in the game. This interaction is triggered when a player attempts
+ * to fire a firearm, initiating the process of spawning projectiles and applying recoil.
+ *
+ * <p>When triggered, this interaction:</p>
+ * <ul>
+ *     <li>Retrieves the firearm's statistics and ammunition components.</li>
+ *     <li>Calculates the direction of the projectile, taking into account spread and aiming.</li>
+ *     <li>Spawns projectiles based on the firearm's rate of fire and ammunition availability.</li>
+ *     <li>Applies recoil to the player.</li>
+ *     <li>Dispatches an {@link OnShoot} event to notify other systems.</li>
+ * </ul>
+ *
+ * <p>The shooting process considers the following factors:</p>
+ * <ul>
+ *     <li>Firearm spread, which is reduced when aiming.</li>
+ *     <li>Projectile velocity, which can be modified by ammunition effects.</li>
+ *     <li>Recoil, which affects the player's view after shooting.</li>
+ *     <li>Ammunition consumption, which reduces the loaded ammunition count.</li>
+ * </ul>
+ *
+ * <p>This interaction is part of the Entity Component System (ECS) architecture in Hytale
+ * and is registered during plugin initialization.</p>
+ */
 public class ShootFirearmInteraction extends SimpleInstantInteraction {
+    /**
+     * The {@link BuilderCodec} for serializing and deserializing this interaction.
+     */
     public static final BuilderCodec<ShootFirearmInteraction> CODEC = BuilderCodec.builder(ShootFirearmInteraction.class, ShootFirearmInteraction::new, SimpleInstantInteraction.CODEC).build();
 
+    /**
+     * Calculates the interaction of the projectile based on the player's orientation, firearm spread
+     * and aiming state.
+     *
+     * @param stats       The firearm's statistics component.
+     * @param ammo        The ammunition component.
+     * @param aim         The aiming component.
+     * @param orientation The player's look orientation.
+     * @return A normalized {@link Vector3d} representing the projectile's direction.
+     */
     @NonNullDecl
     private static Vector3d getDirection(FirearmStatsComponent stats, AmmoComponent ammo, AimComponent aim, Direction orientation) {
         double spread = Math.toRadians(stats.getSpreadBase() * ammo.getSpreadMod());
@@ -46,6 +84,22 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
         return direction;
     }
 
+    /**
+     * Called when the interaction is first run. This method initializes the shooting process
+     * for the player's held firearm.
+     *
+     * <p>The following steps are performed:</p>
+     * <ol>
+     *     <li>Retrieves the firearm's statistics and ammunition components.</li>
+     *     <li>Stops any ongoing reloading process.</li>
+     *     <li>Calculates the number of shots that can be fired in the current tick based on the firearm's cooldown.</li>
+     *     <li>Spawns projectiles and applies recoil for each shot.</li>
+     * </ol>
+     *
+     * @param interactionType    The type of interaction.
+     * @param interactionContext The context of the interaction, including references to the player and held item.
+     * @param cooldownHandler    The handler for managing cooldowns.
+     */
     @Override
     protected void firstRun(@NonNullDecl InteractionType interactionType, @NonNullDecl InteractionContext interactionContext, @NonNullDecl CooldownHandler cooldownHandler) {
 
@@ -77,6 +131,22 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
     }
 
+    /**
+     * Spawns a projectile and applies recoil to the player.
+     * <p>The following steps are performed:</p>
+     * <ol>
+     *     <li>Retrieves the projectile configuration from the asset map.</li>
+     *     <li>Calculates the projectile's direction and velocity.</li>
+     *     <li>Dispatches an {@link OnShoot} event to notify other systems.</li>
+     *     <li>Spawns the projectile using the {@link ProjectileModule}.</li>
+     *     <li>Applies recoil to the player.</li>
+     * </ol>
+     *
+     * @param stats              The firearm's statistics component.
+     * @param ammo               The ammunition component.
+     * @param interactionContext The context of the interaction.
+     * @param configName         The name of the projectile's configuration.
+     */
     private void spawnProjectile(FirearmStatsComponent stats, AmmoComponent ammo, InteractionContext interactionContext, String configName) {
         CommandBuffer<EntityStore> commandBuffer = interactionContext.getCommandBuffer();
         if (commandBuffer == null) {

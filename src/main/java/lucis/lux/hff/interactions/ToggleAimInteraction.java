@@ -17,11 +17,46 @@ import lucis.lux.hff.ui.EmptyHUD;
 import lucis.lux.hff.util.ConfigManager;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
+/**
+ * The {@code ToggleAimInteraction} class is a {@link SimpleInstantInteraction} responsible for toggling
+ * the aiming mode of a player's firearm. This interaction is triggered when a player attempts to aim
+ * down the sights of a firearm, toggling the aiming state and updating the HUD accordingly.
+ *
+ * <p>When triggered, this interaction:</p>
+ * <ul>
+ *     <li>Retrieves or creates an {@link AimComponent} for the player.</li>
+ *     <li>Toggles the aiming state of the player.</li>
+ *     <li>Updates the player's HUD to show or hide the aiming interface.</li>
+ *     <li>Logs a debug message if debug mode is enabled.</li>
+ * </ul>
+ *
+ * <p>This interaction is part of the Entity Component System (ECS) architecture in Hytale
+ * and is registered during plugin initialization.</p>
+ */
 public class ToggleAimInteraction extends SimpleInstantInteraction {
+    /**
+     * The {@link BuilderCodec} for serializing and deserializing this interaction.
+     */
     public static final BuilderCodec<ToggleAimInteraction> CODEC = BuilderCodec
             .builder(ToggleAimInteraction.class, ToggleAimInteraction::new)
             .build();
 
+    /**
+     * Called when the interaction is first run. This method toggles the aiming mode for the player.
+     *
+     * <p>The following steps are performed:</p>
+     * <ol>
+     *   <li>Retrieves the player and their {@link PlayerRef}.</li>
+     *   <li>Retrieves or creates an {@link AimComponent} for the player.</li>
+     *   <li>Toggles the aiming state of the player.</li>
+     *   <li>Updates the player's HUD to show or hide the aiming interface.</li>
+     *   <li>Logs a debug message if debug mode is enabled.</li>
+     * </ol>
+     *
+     * @param interactionType    The type of interaction.
+     * @param interactionContext The context of the interaction, including references to the player and held item.
+     * @param cooldownHandler    The handler for managing cooldowns.
+     */
     @Override
     protected void firstRun(@NonNullDecl InteractionType interactionType, @NonNullDecl InteractionContext interactionContext, @NonNullDecl CooldownHandler cooldownHandler) {
         CommandBuffer<EntityStore> commandBuffer = interactionContext.getCommandBuffer();

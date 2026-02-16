@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
  * the reload mechanism of firearms in the game. This interaction is triggered when a player attempts
  * to reload a firearm, initiating a timed sequence that gradually reloads the ammunition.
  *
- * <p>Whenn triggered, this interaction:
+ * <p>When triggered, this interaction:
  * <ul>
  *     <li>Checks if the player's held item is a valid firearm with a {@link FirearmStatsComponent} and a {@link AmmoComponent}.</li>
  *     <li>Toggles the reloading state of the firearm.</li>
@@ -42,6 +42,9 @@ import java.util.concurrent.TimeUnit;
  * the loading of each projectile. Each projectile is loaded after a delay defined by the firearm's
  * reload time. The process stops when the firearm's ammunition capacity is reached or if reloading
  * is interrupted.</p>
+ *
+ * <p>This interaction is part of the Entity Component System (ECS) architecture in Hytale
+ * and is  registered during plugin initialization</p>
  */
 public class ReloadInteraction extends SimpleInstantInteraction {
 
@@ -53,6 +56,14 @@ public class ReloadInteraction extends SimpleInstantInteraction {
     /**
      * Called when the interaction is first run. This method initializes the reloading process
      * for the player's held firearm.
+     *
+     * <p>The following steps are performed:</p>
+     * <ol>
+     *     <li>Retrieves the player and the held item from the interaction context.</li>
+     *     <li>Ensures that the firearm's {@link FirearmStatsComponent} and {@link AmmoComponent} are present and valid.</li>
+     *     <li>Toggles the reloading state of the firearm.</li>
+     *     <li>Schedules the first timed task to reload a projectile.</li>
+     * </ol>
      *
      * @param interactionType    The type of interaction.
      * @param interactionContext The context of the interaction, including references to the player and held item.
@@ -94,6 +105,13 @@ public class ReloadInteraction extends SimpleInstantInteraction {
     /**
      * Schedules a timed task to incrementally reload the firearm's ammunition.
      * This method is called recursively to load each projectile after a delay.
+     *
+     * <p>Each call schedules a task to:</p>
+     * <ol>
+     *     <li>Increment the loaded ammunition count.</li>
+     *     <li>Send a debug message to the player.</li>
+     *     <li>Schedule the next reload task if the ammunition capacity has not been reached.</li>
+     * </ol>
      *
      * @param stats  The firearm's statistics component, containing reload time and capacity.
      * @param ammo   The ammunition component, tracking the current loaded amount.
