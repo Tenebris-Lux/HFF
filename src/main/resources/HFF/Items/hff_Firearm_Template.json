@@ -1,0 +1,70 @@
+{
+  "Name": "hff_gun_template",
+  "TranslationProperties": {
+    "Name": "item.hff.gun_template.name",
+    "Description": "item.hff.gun_template.desc"
+  },
+  "Categories": [
+    "Items.Weapons",
+    "Hff.Firearms"
+  ],
+  "Icon": "Icons/ItemsGenerated/Weapon_Gun_Blunderbuss.png",
+  "Model": "Items/Weapons/Gun/Blunderbuss.blockymodel",
+  "Texture": "Items/Weapons/Gun/Blunderbuss_Texture.png",
+  "Rarity": "Technical",
+  "MaxStack": 1,
+  "PlayerAnimationsId": "Rifle",
+  "IconProperties": {
+    "Scale": 0.38,
+    "Translation": [
+      -14,
+      -25
+    ],
+    "Rotation": [
+      320,
+      90,
+      0
+    ]
+  },
+  "Components": {
+    "hff:firearm_stats": {
+      "tier": 0,
+      "ignitionType": "MODERN",
+      "damage_multiplier": 1.0,
+      "velocity_multiplier": 1.0,
+      "range_multiplier": 1.0,
+      "recoil": "High",
+      "ammoType": "hff:creative_bullet",
+      "projectile": "hff:example_projectile"
+    },
+    "hff:reliability": {
+      "misfireChance": 0.00,
+      "jamChance": 0.00,
+      "weatherSensitive": false
+    },
+    "hff:reload_mechanic": {
+      "reloadTimeSeconds": 2.5,
+      "requiresStationary": false
+    }
+  },
+  "Interactions": {
+    "Primary": {
+      "Interactions": [
+        {
+          "Type": "hff:check_cooldown",
+          "Next": {
+            "Type": "hff:shoot_firearm"
+          },
+          "Failed": "Simple"
+        }
+      ]
+    },
+    "Secondary": {
+      "Interactions": [
+        {
+          "Type": "hff:toggle_aim"
+        }
+      ]
+    }
+  }
+}

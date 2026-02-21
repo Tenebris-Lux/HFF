@@ -1,4 +1,4 @@
-package lucis.lux.hff.components.enums;
+package lucis.lux.hff.enums;
 
 /**
  * The {@code FirearmType} enum categorizes firearms into distinct types based on their design,

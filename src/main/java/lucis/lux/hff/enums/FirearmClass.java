@@ -1,4 +1,4 @@
-package lucis.lux.hff.components.enums;
+package lucis.lux.hff.enums;
 
 /**
  * The {@code FirearmClass} enum represents the historical classification of firearms

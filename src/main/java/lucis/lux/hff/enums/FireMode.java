@@ -1,4 +1,4 @@
-package lucis.lux.hff.components.enums;
+package lucis.lux.hff.enums;
 
 /**
  * The {@code FireMode} enum defines the different firing modes available for firearms.
