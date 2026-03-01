@@ -1,7 +1,7 @@
 {
   "Group": "lucis.lux",
   "Name": "HFF",
-  "Version": "0.2.0",
+  "Version": "0.3.0",
   "Description": "The Hytale Firearm Framework for in detail firearms.",
   "Authors": [
     {
@@ -10,7 +10,7 @@
     }
   ],
   "Website": "https://github.com/Tenebris-Lux/HytaleFirearmFramework",
-  "ServerVersion": "*",
+  "ServerVersion": "2026.02.19-1a311a592",
   "Dependencies": {},
   "OptionalDependencies": {},
   "DisabledByDefault": false,

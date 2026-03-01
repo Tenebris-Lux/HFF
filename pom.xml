@@ -6,7 +6,7 @@
 
     <groupId>com.github.Tenebris-Lux</groupId>
     <artifactId>HFF</artifactId>
-    <version>0.2.0-Testing</version>
+    <version>0.3.0-Testing</version>
 
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
@@ -48,7 +48,7 @@
         <dependency>
             <groupId>com.hypixel.hytale</groupId>
             <artifactId>Server</artifactId>
-            <version>2026.01.24-6e2d4fc36</version>
+            <version>2026.02.19-1a311a592</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
