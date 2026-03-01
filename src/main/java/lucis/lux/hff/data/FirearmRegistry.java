@@ -69,4 +69,15 @@ public class FirearmRegistry {
     public static FirearmStats get(String itemId) {
         return REGISTRY.get(itemId);
     }
+
+    /**
+     * Returns a map of all registered firearm statistics.
+     * The returned map is a copy of the internal registry map.
+     * Modifications to the returned map will not affect the registry.
+     *
+     * @return A map containing all registered firearm statistics, with item IDs as keys.
+     */
+    public static Map<String, FirearmStats> getList() {
+        return new HashMap<>(REGISTRY);
+    }
 }

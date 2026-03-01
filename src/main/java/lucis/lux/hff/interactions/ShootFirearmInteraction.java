@@ -1,5 +1,6 @@
 package lucis.lux.hff.interactions;
 
+import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Ref;
@@ -8,9 +9,13 @@ import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.protocol.Direction;
 import com.hypixel.hytale.protocol.InteractionState;
 import com.hypixel.hytale.protocol.InteractionType;
+import com.hypixel.hytale.protocol.MovementStates;
 import com.hypixel.hytale.server.core.HytaleServer;
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.InteractionContext;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
+import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.CooldownHandler;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.SimpleInstantInteraction;
@@ -20,13 +25,12 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.AimComponent;
-import lucis.lux.hff.components.AmmoComponent;
-import lucis.lux.hff.components.FirearmStatsComponent;
-import lucis.lux.hff.interactions.events.OnShoot;
-import lucis.lux.hff.util.ComponentRefResult;
-import lucis.lux.hff.util.ConfigManager;
-import lucis.lux.hff.util.EnsureEntity;
+import lucis.lux.hff.components.ReloadingComponent;
+import lucis.lux.hff.data.*;
+import lucis.lux.hff.events.OnShoot;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
+
+import java.util.UUID;
 
 /**
  * The {@code ShootFirearmInteraction} class is a {@link SimpleInstantInteraction} responsible for handling
@@ -35,7 +39,7 @@ import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
  *
  * <p>When triggered, this interaction:</p>
  * <ul>
- *     <li>Retrieves the firearm's statistics and ammunition components.</li>
+ *     <li>Stops any ongoing reloading process.</li>
  *     <li>Calculates the direction of the projectile, taking into account spread and aiming.</li>
  *     <li>Spawns projectiles based on the firearm's rate of fire and ammunition availability.</li>
  *     <li>Applies recoil to the player.</li>
@@ -48,10 +52,8 @@ import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
  *     <li>Projectile velocity, which can be modified by ammunition effects.</li>
  *     <li>Recoil, which affects the player's view after shooting.</li>
  *     <li>Ammunition consumption, which reduces the loaded ammunition count.</li>
+ *     <li>Movement penalty, which increases spread when the player is moving.</li>
  * </ul>
- *
- * <p>This interaction is part of the Entity Component System (ECS) architecture in Hytale
- * and is registered during plugin initialization.</p>
  */
 public class ShootFirearmInteraction extends SimpleInstantInteraction {
     /**
@@ -60,19 +62,21 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
     public static final BuilderCodec<ShootFirearmInteraction> CODEC = BuilderCodec.builder(ShootFirearmInteraction.class, ShootFirearmInteraction::new, SimpleInstantInteraction.CODEC).build();
 
     /**
-     * Calculates the interaction of the projectile based on the player's orientation, firearm spread
-     * and aiming state.
+     * Calculates the direction of the projectile based on the player's orientation, firearm spread,
+     * aiming state, and movement state.
      *
-     * @param stats       The firearm's statistics component.
-     * @param ammo        The ammunition component.
-     * @param aim         The aiming component.
-     * @param orientation The player's look orientation.
+     * @param stats         The firearm's statistics component.
+     * @param aim           The aiming component.
+     * @param orientation   The player's look orientation.
+     * @param movementState The player's movement state.
      * @return A normalized {@link Vector3d} representing the projectile's direction.
      */
     @NonNullDecl
-    private static Vector3d getDirection(FirearmStatsComponent stats, AmmoComponent ammo, AimComponent aim, Direction orientation) {
-        double spread = Math.toRadians(stats.getSpreadBase() * ammo.getSpreadMod());
+    private static Vector3d getDirection(FirearmStats stats, AimComponent aim, Direction orientation, MovementStates movementState) {
+        double spread = Math.toRadians(stats.spreadBase());
         if (aim != null && aim.isAiming()) spread *= 0.7;
+        if (movementState.sprinting || movementState.jumping) spread *= stats.movementPenalty();
+
         double yaw = orientation.yaw + (Math.random() - 0.5) * 2 * spread;
         double pitch = orientation.pitch + (Math.random() - 0.5) * 2 * spread;
 
@@ -80,8 +84,7 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
         double y = Math.sin(pitch);
         double z = -Math.cos(yaw) * Math.cos(pitch);
 
-        Vector3d direction = new Vector3d(x, y, z).normalize();
-        return direction;
+        return new Vector3d(x, y, z).normalize();
     }
 
     /**
@@ -90,8 +93,8 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
      *
      * <p>The following steps are performed:</p>
      * <ol>
-     *     <li>Retrieves the firearm's statistics and ammunition components.</li>
      *     <li>Stops any ongoing reloading process.</li>
+     *     <li>Ensures the firearm has a UUID and state. If not, a new UUID and state are created.</li>
      *     <li>Calculates the number of shots that can be fired in the current tick based on the firearm's cooldown.</li>
      *     <li>Spawns projectiles and applies recoil for each shot.</li>
      * </ol>
@@ -103,31 +106,71 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
     @Override
     protected void firstRun(@NonNullDecl InteractionType interactionType, @NonNullDecl InteractionContext interactionContext, @NonNullDecl CooldownHandler cooldownHandler) {
 
-        ComponentRefResult<FirearmStatsComponent> statsResult = EnsureEntity.get(interactionContext, FirearmStatsComponent.class, HFF.get().getFirearmStatsComponentType(), interactionContext.getHeldItem().getItemId());
-        FirearmStatsComponent stats = statsResult.component();
+        Ref<EntityStore> playerRef = interactionContext.getEntity();
 
-        ComponentRefResult<AmmoComponent> ammoResult = EnsureEntity.get(interactionContext, AmmoComponent.class, HFF.get().getAmmoComponentType(), "Example_Projectile");
-        AmmoComponent ammo = ammoResult.component();
+        CommandBuffer<EntityStore> commandBuffer = interactionContext.getCommandBuffer();
 
-        ammo.setReloading(false);
+        Player player = commandBuffer.getComponent(playerRef, Player.getComponentType());
 
-        float tickRate = Universe.get().getDefaultWorld().getTps();
+        ReloadingComponent reloadingComponent = commandBuffer.getComponent(playerRef, HFF.get().getReloadingComponentType());
 
-        double cooldownMs = 1000 * stats.getCooldown();
-        double tickMs = 1000 / tickRate;
-
-        int shotsPerTick = (int) Math.floor(tickMs / cooldownMs);
-
-        if (shotsPerTick > 0) {
-            for (int i = 0; i < shotsPerTick; i++) {
-                if (ammo.useAmmo())
-                    this.spawnProjectile(stats, ammo, interactionContext, "Example_Projectile");
-            }
-        } else {
-            if (ammo.useAmmo())
-                this.spawnProjectile(stats, ammo, interactionContext, "Example_Projectile");
+        if (reloadingComponent != null) {
+            reloadingComponent.setReloading(false);
         }
 
+        ItemStack item = interactionContext.getHeldItem();
+
+        UUID weaponUuid = item.getFromMetadataOrNull("HFF_STATE", Codec.UUID_BINARY);
+        if (weaponUuid == null) {
+            weaponUuid = UUID.randomUUID();
+            ItemStack newWeapon = item.withMetadata("HFF_STATE", Codec.UUID_BINARY, weaponUuid);
+            player.getInventory().getHotbar().replaceItemStackInSlot(player.getInventory().getActiveHotbarSlot(), item, newWeapon);
+            item = newWeapon;
+        }
+        FirearmState state = FirearmStateManager.getState(weaponUuid);
+
+        if (state == null) {
+            state = new FirearmState();
+            FirearmStateManager.registerState(weaponUuid, state);
+            if (ConfigManager.isDebugMode()) {
+                player.sendMessage(Message.raw("Created a state for the item"));
+            }
+            return;
+        }
+
+        FirearmStats stats = FirearmRegistry.get(item.getItemId());
+
+        if (stats != null) {
+
+            float tickRate = Universe.get().getDefaultWorld().getTps();
+
+            double cooldownMs = 60000.0 / stats.rpm();
+            double tickMs = 1000 / tickRate;
+
+            int shotsPerTick = (int) Math.floor(tickMs / cooldownMs);
+
+            if (ConfigManager.isDebugMode()) {
+                player.sendMessage(Message.raw("Shots per tick: " + tickMs + '/' + cooldownMs + '=' + shotsPerTick));
+            }
+
+            if (shotsPerTick > 0) {
+                for (int i = 0; i < shotsPerTick; i++) {
+                    String projectileId = state.consumeNextProjectile();
+                    if (projectileId != null) {
+                        FirearmStateManager.updateState(weaponUuid, state);
+                        this.spawnProjectile(stats, projectileId, interactionContext);
+                    } else break;
+                }
+            } else {
+                String projectileId = state.consumeNextProjectile();
+                if (projectileId != null) {
+                    FirearmStateManager.updateState(weaponUuid, state);
+                    this.spawnProjectile(stats, projectileId, interactionContext);
+                }
+            }
+        } else if (ConfigManager.isDebugMode()) {
+            player.sendMessage(Message.raw("Did not find any stats for the firearm"));
+        }
 
     }
 
@@ -143,11 +186,10 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
      * </ol>
      *
      * @param stats              The firearm's statistics component.
-     * @param ammo               The ammunition component.
+     * @param projectileId       The ID of the projectile to spawn.
      * @param interactionContext The context of the interaction.
-     * @param configName         The name of the projectile's configuration.
      */
-    private void spawnProjectile(FirearmStatsComponent stats, AmmoComponent ammo, InteractionContext interactionContext, String configName) {
+    private void spawnProjectile(FirearmStats stats, String projectileId, InteractionContext interactionContext) {
         CommandBuffer<EntityStore> commandBuffer = interactionContext.getCommandBuffer();
         if (commandBuffer == null) {
             interactionContext.getState().state = InteractionState.Failed;
@@ -156,38 +198,50 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
         Ref<EntityStore> ref = interactionContext.getEntity();
 
-        // TODO: custom ProjectileComponent & insert the name here
-        ProjectileConfig config = ProjectileConfig.getAssetMap().getAsset(configName);
+        ProjectileConfig config = ProjectileConfig.getAssetMap().getAsset(projectileId);
 
         if (config == null) {
+            HFF.get().getLogger().atSevere().log("ProjectileConfig not found for ID: " + projectileId);
             return;
         }
 
         TransformComponent transform = commandBuffer.getComponent(ref, TransformComponent.getComponentType());
-        if (transform == null) return;
+        if (transform == null) {
+            HFF.get().getLogger().atSevere().log("TransformComponent is null");
+            return;
+        }
 
         Direction orientation = transform.getSentTransform().lookOrientation;
 
-        assert orientation != null;
+        if (orientation == null) {
+            HFF.get().getLogger().atSevere().log("Orientation is null");
+            return;
+        }
 
         Player player = commandBuffer.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            HFF.get().getLogger().atSevere().log("Player is null");
+            return;
+        }
         AimComponent aimComponent = commandBuffer.getComponent(ref, HFF.get().getAimComponentType());
 
-        Vector3d direction = getDirection(stats, ammo, aimComponent, orientation);
+        MovementStatesComponent movementStatesComponent = commandBuffer.getComponent(ref, MovementStatesComponent.getComponentType());
+        MovementStates movementStates = movementStatesComponent != null ? movementStatesComponent.getMovementStates() : null;
+
+        Vector3d direction = getDirection(stats, aimComponent, orientation, movementStates);
 
         if (ConfigManager.isDebugMode()) {
             HFF.get().getLogger().atInfo().log(
                     "Pitch: " + orientation.pitch +
                             "\nYaw: " + orientation.yaw +
                             "\nCalculated direction: " + direction +
-                            "\nwith spread " + stats.getSpreadBase() + "° * " + ammo.getSpreadMod() +
+                            "\nwith base spread " + stats.spreadBase() + "°" +
                             "\n " + System.currentTimeMillis());
         }
 
         double baseVelocity = config.getLaunchForce();
-        double modifiedVelocity = baseVelocity * ammo.getVelocityMod();
 
-        direction = direction.scale(modifiedVelocity);
+        direction = direction.scale(baseVelocity);
 
         Vector3d position = transform.getPosition().clone();
         position.y += 1.6;
@@ -199,10 +253,10 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
             dispatcher.dispatch(event);
         }
 
-        if (stats.isDisabled()) return;
+        if (stats.disabled()) return;
 
         ProjectileModule.get().spawnProjectile(ref, commandBuffer, config, position, direction);
 
-        player.addLocationChange(ref, stats.getHorizontalRecoil(), stats.getVerticalRecoil(), 0, commandBuffer);
+        player.addLocationChange(ref, stats.horizontalRecoil(), stats.verticalRecoil(), 0, commandBuffer);
     }
 }

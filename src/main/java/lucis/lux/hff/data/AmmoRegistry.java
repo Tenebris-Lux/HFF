@@ -25,6 +25,9 @@ import java.util.Map;
  *
  *     // Retrieve ammunition data for an item
  *     AmmoData retrievedAmmoData = AmmoRegistry.get("example_gun");
+ *
+ *     // Get a map of all registered ammunition data
+ *     Map&lt;String, AmmoData&gt; allAmmoData = AmmoRegistry.getList();
  * </pre>
  *
  * @see AmmoData
@@ -56,5 +59,16 @@ public class AmmoRegistry {
      */
     public static AmmoData get(String itemId) {
         return REGISTRY.get(itemId);
+    }
+
+    /**
+     * Returns a map of all registered ammunition data.
+     * The returned map is a copy of the internal registry map.
+     * Modifications to the returned map will not affect the registry.
+     *
+     * @return A map containing all registered ammunition data, with item IDs as keys.
+     */
+    public static Map<String, AmmoData> getList() {
+        return new HashMap<>(REGISTRY);
     }
 }

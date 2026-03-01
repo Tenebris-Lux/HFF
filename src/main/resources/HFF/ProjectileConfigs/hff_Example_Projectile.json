@@ -6,6 +6,7 @@
     "RotationMode": "VelocityDamped"
   },
   "Model": "Bullet_Blunderbuss",
+  "Texture": "Bullet_Blunderbuss_Texture",
   "LaunchForce": 200.0,
   "Interactions": {
     "ProjectileHit": {

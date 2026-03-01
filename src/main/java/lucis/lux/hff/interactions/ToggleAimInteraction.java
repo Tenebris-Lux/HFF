@@ -12,9 +12,9 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.AimComponent;
+import lucis.lux.hff.data.ConfigManager;
 import lucis.lux.hff.ui.AimHUD;
 import lucis.lux.hff.ui.EmptyHUD;
-import lucis.lux.hff.util.ConfigManager;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 /**
@@ -30,8 +30,8 @@ import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
  *     <li>Logs a debug message if debug mode is enabled.</li>
  * </ul>
  *
- * <p>This interaction is part of the Entity Component System (ECS) architecture in Hytale
- * and is registered during plugin initialization.</p>
+ * <p>This interaction is typically used in conjunction with the {@link AimComponent} and
+ * the {@link AimHUD} or {@link EmptyHUD} classes to provide visual feedback when aiming.</p>
  */
 public class ToggleAimInteraction extends SimpleInstantInteraction {
     /**
@@ -61,7 +61,6 @@ public class ToggleAimInteraction extends SimpleInstantInteraction {
     protected void firstRun(@NonNullDecl InteractionType interactionType, @NonNullDecl InteractionContext interactionContext, @NonNullDecl CooldownHandler cooldownHandler) {
         CommandBuffer<EntityStore> commandBuffer = interactionContext.getCommandBuffer();
         Ref<EntityStore> ref = interactionContext.getEntity();
-        commandBuffer.getComponent(ref, Player.getComponentType());
         Player player = commandBuffer.getComponent(ref, Player.getComponentType());
         PlayerRef playerRef = commandBuffer.getComponent(ref, PlayerRef.getComponentType());
 

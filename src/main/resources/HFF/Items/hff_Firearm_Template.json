@@ -5,8 +5,7 @@
     "Description": "item.hff.gun_template.desc"
   },
   "Categories": [
-    "Items.Weapons",
-    "Hff.Firearms"
+    "Items.HFF"
   ],
   "Icon": "Icons/ItemsGenerated/Weapon_Gun_Blunderbuss.png",
   "Model": "Items/Weapons/Gun/Blunderbuss.blockymodel",
@@ -28,23 +27,22 @@
   },
   "Components": {
     "hff:firearm_stats": {
-      "tier": 0,
-      "ignitionType": "MODERN",
-      "damage_multiplier": 1.0,
-      "velocity_multiplier": 1.0,
-      "range_multiplier": 1.0,
-      "recoil": "High",
-      "ammoType": "hff:creative_bullet",
-      "projectile": "hff:example_projectile"
-    },
-    "hff:reliability": {
-      "misfireChance": 0.00,
-      "jamChance": 0.00,
-      "weatherSensitive": false
-    },
-    "hff:reload_mechanic": {
       "reloadTimeSeconds": 2.5,
-      "requiresStationary": false
+      "rpm": 600.0,
+      "projectileVelocity": 100.0,
+      "projectileAmount": 1,
+      "projectileCapacity": 10,
+      "spreadBase": 0.1,
+      "movementPenalty": 0.5,
+      "misfireChance": 0.0,
+      "jamChance": 0.0,
+      "verticalRecoil": 0.5,
+      "horizontalRecoil": 0.2,
+      "firearmClass": "OTHER",
+      "firearmType": "OTHER",
+      "fireMode": "OTHER",
+      "disabled": false,
+      "caliber": "default"
     }
   },
   "Interactions": {
@@ -63,6 +61,13 @@
       "Interactions": [
         {
           "Type": "hff:toggle_aim"
+        }
+      ]
+    },
+    "Use": {
+      "Interactions": [
+        {
+          "Type": "hff:reload"
         }
       ]
     }

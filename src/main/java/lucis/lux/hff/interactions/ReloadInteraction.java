@@ -1,9 +1,9 @@
 package lucis.lux.hff.interactions;
 
+import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.InteractionState;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.HytaleServer;
@@ -15,15 +15,14 @@ import com.hypixel.hytale.server.core.modules.interaction.interaction.CooldownHa
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.SimpleInstantInteraction;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
-import lucis.lux.hff.components.AmmoComponent;
-import lucis.lux.hff.components.FirearmStatsComponent;
-import lucis.lux.hff.util.ComponentRefResult;
-import lucis.lux.hff.util.ConfigManager;
-import lucis.lux.hff.util.EnsureEntity;
+import lucis.lux.hff.components.ReloadingComponent;
+import lucis.lux.hff.data.*;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
+import java.util.UUID;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The {@code ReloadInteraction} class is a {@link SimpleInstantInteraction} responsible for handling
@@ -32,19 +31,15 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>When triggered, this interaction:
  * <ul>
- *     <li>Checks if the player's held item is a valid firearm with a {@link FirearmStatsComponent} and a {@link AmmoComponent}.</li>
  *     <li>Toggles the reloading state of the firearm.</li>
  *     <li>Schedules a timed task to incrementally reload ammunition, using {@link HytaleServer#SCHEDULED_EXECUTOR}.</li>
  *     <li>Provides feedback to the player in debug mode, indicating the progress of the reloading process.</li>
  * </ul></p>
  *
- * <p>The reloading process is asynchronous and uses a recursive approach to simulate
+ * <p>The reloading process is asynchronous and uses scheduler to simulate
  * the loading of each projectile. Each projectile is loaded after a delay defined by the firearm's
  * reload time. The process stops when the firearm's ammunition capacity is reached or if reloading
  * is interrupted.</p>
- *
- * <p>This interaction is part of the Entity Component System (ECS) architecture in Hytale
- * and is  registered during plugin initialization</p>
  */
 public class ReloadInteraction extends SimpleInstantInteraction {
 
@@ -60,9 +55,8 @@ public class ReloadInteraction extends SimpleInstantInteraction {
      * <p>The following steps are performed:</p>
      * <ol>
      *     <li>Retrieves the player and the held item from the interaction context.</li>
-     *     <li>Ensures that the firearm's {@link FirearmStatsComponent} and {@link AmmoComponent} are present and valid.</li>
      *     <li>Toggles the reloading state of the firearm.</li>
-     *     <li>Schedules the first timed task to reload a projectile.</li>
+     *     <li>Schedules the timed task to reload a projectile.</li>
      * </ol>
      *
      * @param interactionType    The type of interaction.
@@ -77,64 +71,168 @@ public class ReloadInteraction extends SimpleInstantInteraction {
             return;
         }
 
-        Store<EntityStore> store = commandBuffer.getExternalData().getStore();
+        Ref<EntityStore> ref = interactionContext.getEntity();
+        Player player = commandBuffer.getComponent(ref, Player.getComponentType());
+        ItemStack item = interactionContext.getHeldItem();
 
-        if (store == null) {
+        FirearmStats stats = FirearmRegistry.get(item.getItemId());
+        if (stats == null) {
             interactionContext.getState().state = InteractionState.Failed;
             return;
         }
 
-        Ref<EntityStore> ref = interactionContext.getEntity();
+        ReloadingComponent reloading = commandBuffer.ensureAndGetComponent(ref, HFF.get().getReloadingComponentType());
 
-        Player player = commandBuffer.getComponent(ref, Player.getComponentType());
+        if (reloading == null) {
+            return;
+        }
 
-        ItemStack item = interactionContext.getHeldItem();
-
-        ComponentRefResult<FirearmStatsComponent> statsResult = EnsureEntity.get(interactionContext, FirearmStatsComponent.class, HFF.get().getFirearmStatsComponentType(), item.getItemId());
-        ComponentRefResult<AmmoComponent> ammoResult = EnsureEntity.get(interactionContext, AmmoComponent.class, HFF.get().getAmmoComponentType(), item.getItemId());
-        if (statsResult.newlyCreated() || ammoResult.newlyCreated()) return;
-        FirearmStatsComponent stats = statsResult.component();
-        AmmoComponent ammo = ammoResult.component();
-        // TODO: use an ammo item to reload
-
-        ammo.toggleReloading();
+        reloading.toggleReloading();
         if (ConfigManager.isDebugMode()) player.sendMessage(Message.raw("Started reloading"));
-        setReloadTimer(stats, ammo, player, 0);
+        startReloadTask(player, item, stats, reloading);
     }
 
     /**
      * Schedules a timed task to incrementally reload the firearm's ammunition.
-     * This method is called recursively to load each projectile after a delay.
+     * This method is called to start the reloading process and schedules a task that runs at fixed intervals.
      *
-     * <p>Each call schedules a task to:</p>
+     * <p>The following steps are performed:</p>
      * <ol>
-     *     <li>Increment the loaded ammunition count.</li>
-     *     <li>Send a debug message to the player.</li>
-     *     <li>Schedule the next reload task if the ammunition capacity has not been reached.</li>
+     *   <li>Ensures the weapon has a UUID. If not, a new UUID is generated and assigned.</li>
+     *   <li>Schedules a task to load projectiles at fixed intervals.</li>
+     *   <li>Checks if the reloading process should continue or be cancelled.</li>
+     *   <li>Loads projectiles from the player's inventory and updates the firearm's state.</li>
      * </ol>
      *
-     * @param stats  The firearm's statistics component, containing reload time and capacity.
-     * @param ammo   The ammunition component, tracking the current loaded amount.
-     * @param player The player reloading the firearm.
-     * @param depth  The current recursion depth, representing the number of projectiles loaded so far.
+     * @param player             The player who is reloading the firearm.
+     * @param weapon             The firearm item being reloaded.
+     * @param stats              The statistics of the firearm.
+     * @param reloadingComponent The reloading component of the firearm.
      */
-    private void setReloadTimer(FirearmStatsComponent stats, AmmoComponent ammo, Player player, int depth) {
-        if (!ammo.isReloading() || depth >= stats.getProjectileCapacity()) {
-            if (ConfigManager.isDebugMode()) player.sendMessage(Message.raw("Stopped reloading"));
-            return;
+    private void startReloadTask(Player player, ItemStack weapon, FirearmStats stats, ReloadingComponent reloadingComponent) {
+
+        UUID weaponUuid = weapon.getFromMetadataOrNull("HFF_STATE", Codec.UUID_BINARY);
+        player.sendMessage(Message.raw("Starting UUID: " + weaponUuid));
+        if (weaponUuid == null) {
+            weaponUuid = UUID.randomUUID();
+            player.sendMessage(Message.raw("Changed UUID: " + weaponUuid));
+            ItemStack newWeapon = weapon.withMetadata("HFF_STATE", Codec.UUID_BINARY, weaponUuid);
+            player.getInventory().getHotbar().replaceItemStackInSlot(player.getInventory().getActiveHotbarSlot(), weapon, newWeapon);
         }
-        @SuppressWarnings("unchecked")
-        ScheduledFuture<Void> reloadTask = (ScheduledFuture<Void>) HytaleServer.SCHEDULED_EXECUTOR.schedule(() -> {
+
+        AtomicReference<ScheduledFuture<Void>> reloadTaskRef = new AtomicReference<>();
+        UUID finalWeaponUuid = weaponUuid;
+        @SuppressWarnings("unchecked") final ScheduledFuture<Void> reloadTask = (ScheduledFuture<Void>) HytaleServer.SCHEDULED_EXECUTOR.scheduleAtFixedRate(() -> {
             player.getWorld().execute(() -> {
-                ammo.incrementLoadedAmount();
-                if (ConfigManager.isDebugMode()) player.sendMessage(Message.raw("Reloaded a projectile"));
-                if (ammo.getLoadedAmount() < stats.getProjectileCapacity()) {
-                    this.setReloadTimer(stats, ammo, player, depth + 1);
-                } else if (ConfigManager.isDebugMode()) player.sendMessage(Message.raw("Stopped reloading"));
+
+                ItemStack currentItem = player.getInventory().getItemInHand();
+                UUID currentUuid = currentItem.getFromMetadataOrNull("HFF_STATE", Codec.UUID_BINARY);
+                if (currentItem == null || !finalWeaponUuid.equals(currentUuid) || !reloadingComponent.isReloading()) {
+                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
+                    return;
+                }
+
+                FirearmState state = FirearmStateManager.getState(finalWeaponUuid);
+
+                if (state == null) {
+                    state = new FirearmState();
+                    FirearmStateManager.registerState(finalWeaponUuid, state);
+                }
+
+                String projectileId = getProjectileId(player);
+
+                if (projectileId != null) {
+                    state.loadProjectile(projectileId);
+                    FirearmStateManager.updateState(finalWeaponUuid, state);
+
+                    if (ConfigManager.isDebugMode()) {
+                        player.sendMessage(Message.raw("Reloaded a projectile"));
+                    }
+                } else {
+                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
+                    return;
+                }
+
+                if (state.getCurrentAmmoCount() >= stats.projectileCapacity()) {
+                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
+                    if (ConfigManager.isDebugMode()) {
+                        player.sendMessage(Message.raw("Finished reloading"));
+                    }
+                } else {
+                    if (ConfigManager.isDebugMode()) {
+                        player.sendMessage(Message.raw("Loaded " + state.getCurrentAmmoCount() + '/' + stats.projectileCapacity()));
+                    }
+                }
             });
-        }, (long) stats.getReloadTime(), TimeUnit.SECONDS);
+        }, (long) stats.reloadTime(), (long) stats.reloadTime(), TimeUnit.SECONDS);
 
+        reloadTaskRef.set(reloadTask);
         HFF.get().getTaskRegistry().registerTask(reloadTask);
+    }
 
+    /**
+     * Cancels the reloading task and updates the reloading state.
+     *
+     * @param reloadTask         The reloading task to cancel.
+     * @param reloadingComponent The reloading component to update.
+     */
+    private void cancelReloadTask(ScheduledFuture<Void> reloadTask, ReloadingComponent reloadingComponent) {
+        if (reloadTask != null && !reloadTask.isCancelled()) {
+            reloadTask.cancel(false);
+            reloadingComponent.setReloading(false);
+            if (ConfigManager.isDebugMode()) {
+                HFF.get().getLogger().atInfo().log("Reload task cancelled");
+            }
+        }
+    }
+
+    /**
+     * Searches the player's inventory for ammunition and returns the projectile ID of the first found ammunition.
+     * The ammunition is removed from the player's inventory once found.
+     *
+     * <p>The following locations are searched in order:</p>
+     * <ol>
+     *   <li>Utility slot.</li>
+     *   <li>Hotbar slots.</li>
+     *   <li>Storage slots.</li>
+     * </ol>
+     *
+     * @param player The player whose inventory is to be searched.
+     * @return The projectile ID of the found ammunition, or {@code null} if no ammunition is found.
+     */
+    private String getProjectileId(Player player) {
+        ItemStack utility = player.getInventory().getUtilityItem();
+        if (utility != null) {
+            AmmoData ammo = AmmoRegistry.get(utility.getItemId());
+
+            if (ammo != null) {
+                player.getInventory().getUtility().removeItemStackFromSlot(player.getInventory().getActiveUtilitySlot(), 1);
+                return ammo.projectileId();
+            }
+        }
+
+        for (short i = 0; i < 9; i++) {
+            ItemStack hotbar = player.getInventory().getHotbar().getItemStack(i);
+            if (hotbar != null) {
+                AmmoData ammo = AmmoRegistry.get(hotbar.getItemId());
+                if (ammo != null) {
+                    player.getInventory().getHotbar().removeItemStackFromSlot(i, 1);
+                    return ammo.projectileId();
+                }
+            }
+        }
+
+        for (short i = 0; i < player.getInventory().getStorage().getCapacity(); i++) {
+            ItemStack storageItem = player.getInventory().getStorage().getItemStack(i);
+            if (storageItem != null) {
+                AmmoData ammo = AmmoRegistry.get(storageItem.getItemId());
+                if (ammo != null) {
+                    player.getInventory().getStorage().removeItemStackFromSlot(i, storageItem, 1);
+                    return ammo.projectileId();
+                }
+            }
+        }
+
+        return null;
     }
 }

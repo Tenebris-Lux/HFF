@@ -1,64 +1,94 @@
 package lucis.lux.hff.data;
 
-import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.codec.Codec;
+import com.hypixel.hytale.codec.ExtraInfo;
+import com.hypixel.hytale.codec.KeyedCodec;
+import com.hypixel.hytale.codec.builder.BuilderCodec;
+import com.hypixel.hytale.codec.schema.SchemaContext;
+import com.hypixel.hytale.codec.schema.config.ArraySchema;
+import com.hypixel.hytale.codec.schema.config.Schema;
+import com.hypixel.hytale.codec.schema.config.StringSchema;
+import org.bson.BsonArray;
+import org.bson.BsonString;
+import org.bson.BsonValue;
+import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
+import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 
+import java.io.Serializable;
 import java.util.LinkedList;
 
 /**
- * The {@code FirearmState} class represents the current state of a firearm, including its owner
- * and the projectiles currently loaded into it. This class is used to track the operational state
- * of a firearm, such as the number of loaded projectiles and the entity that owns the firearm.
+ * The {@code FirearmState} class is used to track the operational state of a firearm, such as the number of
+ * loaded projectiles.
  *
  * <p>This class is typically used in the HFF (Hytale Firearm Framework) plugin to manage the state
- * of firearms during gameplay. It allows for tracking which projectiles are loaded
- * and which entity currently owns the firearm.</p>
+ * of firearms during gameplay. It allows for tracking which projectiles are loaded.</p>
  *
  * <p>Example usage:</p>
  * <pre>
  *     FirearmState state = new FirearmState();
- *     state.setOwner(playerRef):
  *     state.loadProjectile("9mm_projectile");
  *     String nextProjectile = state.consumeNextProjectile();
  * </pre>
  */
-public class FirearmState {
+public class FirearmState implements Serializable {
+
+    /**
+     * A custom {@link Codec} for serializing and deserializing a {@link LinkedList} of strings.
+     * This codec is used to handle the list of loaded projectiles.
+     */
+    private static final Codec<LinkedList<String>> LINKED_LIST_CODEC = new Codec<LinkedList<String>>() {
+        @NullableDecl
+        @Override
+        public LinkedList<String> decode(BsonValue bsonValue, ExtraInfo extraInfo) {
+            if (bsonValue instanceof BsonArray array) {
+                LinkedList<String> list = new LinkedList<>();
+                for (BsonValue value : array) {
+                    list.add(value.asString().getValue());
+                }
+                return list;
+            }
+            return new LinkedList<>();
+        }
+
+        @Override
+        public BsonValue encode(LinkedList<String> strings, ExtraInfo extraInfo) {
+            BsonArray array = new BsonArray();
+            for (String str : strings) {
+                array.add(new BsonString(str));
+            }
+            return array;
+        }
+
+        @NonNullDecl
+        @Override
+        public Schema toSchema(@NonNullDecl SchemaContext schemaContext) {
+            ArraySchema arraySchema = new ArraySchema();
+            arraySchema.setItems(new StringSchema());
+            return arraySchema;
+        }
+    };
+
+    /**
+     * The {@link BuilderCodec} for serializing and deserializing this class.
+     * This codec handles the UUID and the list of loaded projectiles.
+     */
+    public static final BuilderCodec<FirearmState> CODEC = BuilderCodec.builder(FirearmState.class, FirearmState::new)
+            .append(new KeyedCodec<>("LoadedProjectiles", LINKED_LIST_CODEC), (c, v) -> c.loadedProjectiles = v, c -> c.loadedProjectiles)
+            .add()
+            .build();
 
     /**
      * A list of projectiles currently loaded into the firearm.
      * The list is implemented as a {@link LinkedList} to allow efficient addition and removal of projectiles.
      */
-    private final LinkedList<String> loadedProjectiles;
+    private LinkedList<String> loadedProjectiles;
 
     /**
-     * A reference to the entity that currently owns this firearm.
-     */
-    private Ref<EntityStore> owner;
-
-    /**
-     * Constructs a new {@code FirearmState} with no owner and an empty list of loaded projectiles.
+     * Constructs a new {@code FirearmState} with an empty list of loaded projectiles.
      */
     public FirearmState() {
         this.loadedProjectiles = new LinkedList<>();
-        this.owner = null;
-    }
-
-    /**
-     * Returns the reference to the entity that currently owns this firearm.
-     *
-     * @return The reference to the owner entity, or {@code null} if there is no owner.
-     */
-    public Ref<EntityStore> getOwner() {
-        return owner;
-    }
-
-    /**
-     * Sets the reference to the entity that owns this firearm.
-     *
-     * @param owner The reference to the owner entity.
-     */
-    public void setOwner(Ref<EntityStore> owner) {
-        this.owner = owner;
     }
 
     /**
