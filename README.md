@@ -2,7 +2,7 @@
 
 # Hytale Firearm Framework (HFF)
 
-**A modular, ECS-based framework for firearms, crossbows and ranged weapons in Hytale**
+**A high-performance framework for firearms, crossbows, and ranged weapons in Hytale.**
 
 ---
 
@@ -10,47 +10,40 @@
 
 **HFF** is a flexible framework designed to simplify the creation and management of **firearms, crossbows and other
 ranged weapons** in Hytale.
-It uses **Hytale's Entity Component System (ECS)** to provide a modular architecture for weapon behaviour, attachments,
-animations, and physics.
+Instead of relying on heavy ECS entities for inventory items, HFF uses a highly optimized **Flyweight Architecture**:
+
+- **Static weapon stats** (e.g., RPM, recoil) are stored centrally in registries.
+- **Dynamic item states** (e.g., ammo queues) are stored as a reference to the specific item stacks.
+- **Result:** Maximum server performance with support for complex mechanics like mixed-ammo magazines and advanced
+  ballistics.
 
 ---
 
 ## Key Features
 
-- **Modular Weapon System**: Define weapons as combinations of components (e.g. barrels, magazines, scopes).
-- **ECS Integration**: Build for Hytale's ECS architecture.
-- **Customizable Attachments**: Supports scopes, silencers, grips, and more.
-- **Physics & Ballistics**: Realistic projectile behaviour, recoil, and spread.
-- **Animation Support**: Smooth animations for reloading, firing, and inspecting weapons.
-- **Event-Driven**: Hook into weapon events (e.g., `onFire`, `onReload`) for custom logic.
+| Feature                    | Description                                                            |
+|----------------------------|------------------------------------------------------------------------|
+| **Flyweight Architecture** | Seperates static and dynamic data for optimal memory usage.            |
+| **Advanced Ammo System**   | Supports mixed magazines (e.g., alternating tracer/AP rounds).         |
+| **Custom Attachments**     | Modify weapon stats dynamically using built-in record builders.        |
+| **Physics & Ballistics**   | Realistic projectile behaviour, recoil, and spread.                    |
+| **Event-Driven**           | Hook into weapon events (e.g., `onFire`, `onReload`) for custom logic. |
+| **Animation Support**      | Smooth animations for reloading, firing, and inspecting weapons.       |
 
 ---
 
 ## Installation
 
-### 1. Download & Server Setup
+### For Users
 
-1. **Download** the latest release from the [Releases](https://github.com/Tenebris-Lux/HytaleFirearmFramework/releases)
-   page.
-2. **Install** the `HFF.jar` on your Hytale Server (place it in the `mods/` folder alongside your own mod).
+1. **Download** the latest release from [Releases](https://github.com/Tenebris-Lux/HFF/releases).
+2. Place `HFF.jar` in your server's `mod/` folder.
 
-### 2. Developer Setup (Dependency)
+### For Developers
 
-To use the framework in your code, add it as a dependency.
+Add HFF as a dependency to your project:
 
-**Runtime Dependency (`manifest.json`)**
-Add `HFF` to your mods `manifest.json` to ensure the server loads the framework before your mod starts.
-
-```json
-"Dependencies": {
-"HFF": "^0.1.0"
-}
-```
-
-**Build Dependency**
-Add the library to your project to access the classes.
-
-_Option A: Maven (`pom.xml`)_
+**Maven (`pom.xml`)**
 
 ```xml
 
@@ -63,13 +56,13 @@ _Option A: Maven (`pom.xml`)_
 
 <dependency>
 <groupId>com.github.Tenebris-Lux</groupId>
-<artifactId>HytaleFirearmFramework</artifactId>
-<version>0.2.0-Testing</version>
+<artifactId>HFF</artifactId>
+<version>0.3.0-Testing</version>
 <scope>provided</scope>
 </dependency>
 ```
 
-_Option B: Gradle (`build.gradle`)_
+**Gradle (`build.gradle`)**
 
 ```groovy
 repositories {
@@ -77,113 +70,216 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'com.github.Tenebris-Lux:HytaleFirearmFramework:0.2.0-Testing'
+    compileOnly 'com.github.Tenebris-Lux:HFF:0.3.0-Testing'
 }
 ```
-
-### 3. Initialisation
-
-Configure the framework in your mod's initialisation method:
-
-```java
- public class MyMod extends JavaPlugin {
-    @Override
-    protected void setup() {
-        HFF.initialize();
-    }
-}
-```
-
-### 4. Start building your weapons
-
----
-
-## Configuration
-
-The framework uses a `hff_config.json` file to define where weapon stats are loaded from.
-This file can be placed in **three locations** (and are loaded in this order):
-
-1. **Inside your zip file** (in `/hff_config.json`)
-2. **Hytale's main directory** (e.g., `%appdata%\Hytale`)
-3. **Inside your JAR** (in `src/main/resources/hff_config.json`)
-
-**Example `hff_config.json`**
-
-```json
-{
-  "filePath": "HFF/",
-  "archivePath": "mods/hff.jar",
-  "pathInArchive": "HFF/",
-  "archiveFirst": true
-}
-```
-
-| Field           | Description                                                                                            |
-|-----------------|--------------------------------------------------------------------------------------------------------|
-| `filePath`      | Path to the directory containing weapon stat files **on the server**.                                  |
-| `archivePath`   | Path to a archive containing weapon stat files (supports .jar and .zip).                               |
-| `pathInArchive` | Path **inside the archive** to the stat files.                                                         |
-| `archiveFirst`  | If `true`, the framework will first try to load stats from the archive before checking the filesystem. |
 
 ---
 
 ## Usage
 
-1. **Create a Weapon**
+**Create a Weapon**
 
-   Define your weapon in a **JSON file** (e.g., `Hff_Firearm_Template.json`):
+Define your weapon in a **JSON file** (e.g., `Hff_Firearm_Template.json`):
+
    ```json
    {
-   "RPM": 500.0,
-   "ProjectileVelocity": 10.0,
-   "ProjectileAmount": 1,
-   "SpreadBase": 0.1,
-   "MovementPenalty": 0.5,
-   "MisfireChance": 0.01,
-   "JamChance": 0.005,
-   "VerticalRecoil": 0.5,
-   "HorizontalRecoil": 0.5
-   }
-   ```
-   Place this file in:
-    - `stats_path` (e.g., `MyMod/Weapons/Stats/Hff_Firearm_Template.json`) or
-    - `fallback_path` (e.g., `items/Hff_Firearm_Template.json` inside the JAR).
+  "Name": "hff_gun_template",
+  "TranslationProperties": {
+    "Name": "item.hff.gun_template.name",
+    "Description": "item.hff.gun_template.desc"
+  },
+  "Categories": [
+    "Items.HFF"
+  ],
+  "Icon": "Icons/ItemsGenerated/Weapon_Gun_Blunderbuss.png",
+  "Model": "Items/Weapons/Gun/Blunderbuss.blockymodel",
+  "Texture": "Items/Weapons/Gun/Blunderbuss_Texture.png",
+  "Rarity": "Technical",
+  "MaxStack": 1,
+  "PlayerAnimationsId": "Rifle",
+  "IconProperties": {
+    "Scale": 0.38,
+    "Translation": [
+      -14,
+      -25
+    ],
+    "Rotation": [
+      320,
+      90,
+      0
+    ]
+  },
+  "Components": {
+    "hff:firearm_stats": {
+      "reloadTimeSeconds": 2.5,
+      "rpm": 600.0,
+      "projectileVelocity": 100.0,
+      "projectileAmount": 1,
+      "projectileCapacity": 10,
+      "spreadBase": 0.1,
+      "movementPenalty": 0.5,
+      "misfireChance": 0.0,
+      "jamChance": 0.0,
+      "verticalRecoil": 0.5,
+      "horizontalRecoil": 0.2,
+      "firearmClass": "OTHER",
+      "firearmType": "OTHER",
+      "fireMode": "OTHER",
+      "disabled": false,
+      "caliber": "default"
+    }
+  },
+  "Interactions": {
+    "Primary": {
+      "Interactions": [
+        {
+          "Type": "hff:check_cooldown",
+          "Next": {
+            "Type": "hff:shoot_firearm"
+          },
+          "Failed": "Simple"
+        }
+      ]
+    },
+    "Secondary": {
+      "Interactions": [
+        {
+          "Type": "hff:toggle_aim"
+        }
+      ]
+    },
+    "Use": {
+      "Interactions": [
+        {
+          "Type": "hff:reload"
+        }
+      ]
+    }
+  }
+}
 
-2. **Customise Weapon Behaviour**
+```
 
-   Extend or override the default interactions to customise weapon behaviour.
+Place this file in `src/main/[yourMod]/resources/HFF/Items/`.
 
-3. **Create a new Bullet**
+**Configuration**
 
-   Projectiles are also defined by a JSON file. A good example can be found at
-   `src/main/resources/Server/ProjectileConfigs/Example_Projectile.json`.
-   For more information about Projectile Configurations
-   visit [Hytale Server Docs](https://hytale-docs.pages.dev/modding/systems/projectiles/).
+`hff_config.json` Example
+
+```json
+{
+  "filePath": "MyMod/HFF/Items/",
+  "archivePath": "mods/my_mod.jar",
+  "pathInArchive": "HFF/Items/",
+  "archiveFirst": true,
+  "debugMode": true
+}
+```
+
+| Option        | Description                                |
+|---------------|--------------------------------------------|
+| filePath      | Path to weapon stats in the filesystem.    |
+| archivePath   | Path to your mod JAR.                      |
+| pathInArchive | Path to weapon stats inside the JAR.       |
+| archiveFirst  | Prioritize resources from the JAR if true. |
+| debugMode     | Enable detailed logs for debugging.        |
 
 ---
 
 ## Project Structure
 
-```
+```text
 hff/
-├── src/main/
-|   ├── java/
-|   |   ├── lucis/lux/
-|   |   |   ├── components/                     # Components
-|   |   |   ├── systems/                        # ECS systems
-|   |   |   ├── util                            # Utiliary Classes
-|   |   |   └── HFF.java                        # Plugin Setup
-|   └── resources/
-|       ├── Server/
-|       |   ├── Item/Items
-|       |   |   └── Hff_Firearm_Template.json   # Firearm template
-|       |   └── Languages/en-US/
-|       |       └── items.lang                  # Translation file
-|       ├── hff_config.json                     # Fallback config file
-|       └── manifest.json                       # Plugin configuration file
+├── src
+│ └── main
+│   ├── java
+│   │ └── lucis
+│   │     └── lux
+│   │         └── hff
+│   │             ├── commands
+│   │             │ ├── ShowFirearmRegistryCommand.java
+│   │             │ ├── ShowProjectilesCommand.java
+│   │             │ └── ShowUUIDCommand.java
+│   │             ├── components
+│   │             │ ├── AimComponent.java
+│   │             │ ├── interfaces
+│   │             │ │ └── FirearmAttachment.java
+│   │             │ └── ReloadingComponent.java
+│   │             ├── data
+│   │             │ ├── AmmoData.java
+│   │             │ ├── AmmoRegistry.java
+│   │             │ ├── ConfigManager.java
+│   │             │ ├── FirearmRegistry.java
+│   │             │ ├── FirearmState.java
+│   │             │ ├── FirearmStateManager.java
+│   │             │ ├── FirearmStats.java
+│   │             │ └── HFFAssetPackGenerator.java
+│   │             ├── enums
+│   │             │ ├── FirearmClass.java
+│   │             │ ├── FirearmType.java
+│   │             │ └── FireMode.java
+│   │             ├── events
+│   │             │ ├── OnCheckTimeout.java
+│   │             │ └── OnShoot.java
+│   │             ├── HFF.java
+│   │             ├── interactions
+│   │             │ ├── CheckCooldownInteraction.java
+│   │             │ ├── ReloadInteraction.java
+│   │             │ ├── ShootFirearmInteraction.java
+│   │             │ └── ToggleAimInteraction.java
+│   │             ├── listeners
+│   │             │ └── FirearmUuidInitializer.java
+│   │             ├── network
+│   │             ├── storage
+│   │             │ └── FirearmStateStorage.java
+│   │             ├── systems
+│   │             │ ├── AimSystem.java
+│   │             │ └── ReloadSystem.java
+│   │             ├── ui
+│   │             │ ├── AimHUD.java
+│   │             │ └── EmptyHUD.java
+│   │             └── util
+│   └── resources
+│       ├── Common
+│       │ └── UI
+│       │     └── Custom
+│       │         └── HUD
+│       │             ├── aim.ui
+│       │             └── crosshair.png
+│       ├── HFF
+│       │ ├── Assets
+│       │ │ ├── Icons
+│       │ │ ├── Models
+│       │ │ ├── Sounds
+│       │ │ └── Textures
+│       │ ├── Items
+│       │ │ ├── hff_Ammunition_Template.json
+│       │ │ └── hff_Firearm_Template.json
+│       │ └── ProjectileConfigs
+│       │     └── hff_Example_Projectile.json
+│       └── manifest.json       # Plugin configuration file
 └── README.md
 
 ```
+
+---
+
+## FAQ
+
+Q: **How do I create a weapon with mixed ammo?**
+
+A: You don't have to implement anything. Just prepare the ammunition in the hotbar before reloading.
+
+Q: **Why aren't my weapon stats loading?**
+A:
+
+- Check the path in `hff_config.json`.
+- Verify JSON syntax and file locations.
+
+Q: **How do I add custom attachments?**
+
+A: Not yet! (っ- ‸ - ς)
 
 ---
 
@@ -192,27 +288,10 @@ hff/
 Contributions are welcome! Open a **Pull Request** or submit an **Issue** for bugs/feature requests.
 
 1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature/your-feature`).
+2. Create a feature branch (`git checkout -b feature/your-idea`).
 3. Commit your changes (`git commit -am 'feat: Description of feature'`).
 4. Push to the branch (`git push origin feature/your-feature`).
 5. Open a Pull Request
-
----
-
-## FAQ
-
-1. **How do I create my own weapon?**
-
-   Create a JSON file in the `stats_path` directory (or `fallback_path` inside your JAR) and define the attributes.
-   You additionally need an item asset with the same name as the stats file. Just copy the template and rename it.
-
-2. **Why aren't my weapon stats loading?**
-    - Check the path in `hff_config.json`.
-    - Ensure the JSON file is correctly formatted.
-
-3. **How can I extend the framework?**
-
-   Create custom interactions and systems and register them in your plugin class.
 
 ---
 
