@@ -29,7 +29,7 @@ import java.util.zip.ZipFile;
  *     <li>Creates a new ZIP file system for the output asset pack.</li>
  *     <li>Scans specified directories for JAR and ZIP files containing assets.</li>
  *     <li>Processes each asset file, removing HFF-specific fields to ensure compatibility with Hytale.</li>
- *     <li>Copies asset files (models, textures, icons) into the new asset pack.</li>
+ *     <li>Copies asset files (models, textures, icons, projectile configs) into the new asset pack.</li>
  *     <li>Registers firearm and ammunition data in the {@link FirearmRegistry} and {@link AmmoRegistry}.</li>
  * </ul>
  *
@@ -126,13 +126,36 @@ public class HFFAssetPackGenerator {
 
             JsonObject hytaleAsset = removeHFFFields(combinedAsset);
 
-            Path assetPathInZip = zipFs.getPath("/Server/Item/Items/" + itemName + ".json");
+            Path assetPathInZip;
+            if (entryPath.contains("Items")) {
+                assetPathInZip = zipFs.getPath("/Server/Item/Items/" + itemName + ".json");
+            } else {
+                return;
+            }
             Files.createDirectories(assetPathInZip.getParent());
             Files.writeString(assetPathInZip, hytaleAsset.toString());
 
-            copyAssetFromJar(zipFs, jarFile, combinedAsset.get("Model").getAsString(), "Common/" + combinedAsset.get("Model").getAsString());
-            copyAssetFromJar(zipFs, jarFile, combinedAsset.get("Texture").getAsString(), "Common/" + combinedAsset.get("Texture").getAsString());
-            copyAssetFromJar(zipFs, jarFile, combinedAsset.get("Icon").getAsString(), "Common/" + combinedAsset.get("Icon").getAsString());
+            if (combinedAsset.has("Model")) {
+                copyAssetFromJar(zipFs, jarFile, combinedAsset.get("Model").getAsString(), "Common/" + combinedAsset.get("Model").getAsString());
+            }
+
+            if (combinedAsset.has("Texture")) {
+                copyAssetFromJar(zipFs, jarFile, combinedAsset.get("Texture").getAsString(), "Common/" + combinedAsset.get("Texture").getAsString());
+            }
+
+            if (combinedAsset.has("Icon")) {
+                copyAssetFromJar(zipFs, jarFile, combinedAsset.get("Icon").getAsString(), "Common/" + combinedAsset.get("Icon").getAsString());
+            }
+
+            if (combinedAsset.has("Components")) {
+                JsonObject components = combinedAsset.getAsJsonObject("Components");
+                if (components.has("hff:ammo")) {
+                    JsonObject ammo = components.getAsJsonObject("hff:ammo");
+                    if (ammo.has("projectileId")) {
+                        copyAssetFromJar(zipFs, jarFile, "ProjectileConfigs/" + ammo.get("projectileId").getAsString() + ".json", "Server/ProjectileConfigs/" + ammo.get("projectileId").getAsString() + ".json");
+                    }
+                }
+            }
 
             registerHFFData(itemName, combinedAsset);
 
@@ -152,7 +175,7 @@ public class HFFAssetPackGenerator {
         if (combinedAsset.has("Components")) {
             JsonObject components = combinedAsset.getAsJsonObject("Components");
             if (components.has("hff:firearm_stats")) {
-                JsonObject statsJson = components.getAsJsonObject("hff:firearm:stats");
+                JsonObject statsJson = components.getAsJsonObject("hff:firearm_stats");
                 FirearmStats stats = loadFirearmStats(statsJson);
                 FirearmRegistry.register(itemName, stats);
             }
@@ -167,6 +190,7 @@ public class HFFAssetPackGenerator {
 
     /**
      * Loads firearm statistics from a JSON object and creates a {@link FirearmStats} object.
+     * This method safely handles missing fields by only setting values that are present in the JSON object.
      *
      * @param statsJson The JSON object containing the firearm statistics.
      * @return A {@link FirearmStats} object created from the JSON data.
@@ -198,15 +222,16 @@ public class HFFAssetPackGenerator {
 
     /**
      * Loads ammunition data from a JSON object and creates an {@link AmmoData} object.
+     * This method safely handles missing fields by only setting values that are present in the JSON object.
      *
      * @param ammoJson The JSON object containing the ammunition data.
      * @return An {@link AmmoData} object created from the JSON data.
      */
     private static AmmoData loadAmmoData(JsonObject ammoJson) {
         AmmoData.Builder builder = AmmoData.builder();
-        if (ammoJson.has("reloadTime")) builder.calibre(ammoJson.get("calibre").getAsString());
+        if (ammoJson.has("calibre")) builder.calibre(ammoJson.get("calibre").getAsString());
         if (ammoJson.has("projectileId")) builder.projectileId(ammoJson.get("projectileId").getAsString());
-        if (ammoJson.has("damage")) builder.damage(ammoJson.get("calibre").getAsFloat());
+        if (ammoJson.has("damage")) builder.damage(ammoJson.get("damage").getAsFloat());
         return builder.build();
     }
 
@@ -220,6 +245,14 @@ public class HFFAssetPackGenerator {
      * @throws IOException If an error occurs while copying the asset file.
      */
     private static void copyAssetFromJar(FileSystem zipFs, ZipFile jarFile, String entryPath, String targetPath) throws IOException {
+
+        entryPath = "HFF/" + entryPath;
+
+        if (entryPath == null || entryPath.isEmpty()) {
+            HFF.get().getLogger().atSevere().log("Invalid asset path: " + entryPath);
+            return;
+        }
+
         ZipEntry assetEntry = jarFile.getEntry(entryPath);
         if (assetEntry != null) {
             Path target = zipFs.getPath(targetPath);
