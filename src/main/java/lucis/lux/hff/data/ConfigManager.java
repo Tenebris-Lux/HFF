@@ -1,4 +1,4 @@
-package lucis.lux.hff.util;
+package lucis.lux.hff.data;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
