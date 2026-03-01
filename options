@@ -1,0 +1,24 @@
+-classpath
+'/home/user/.m2/repository/com/hypixel/hytale/Server/2026.02.19-1a311a592/Server-2026.02.19-1a311a592.jar'
+-encoding
+'UTF-8'
+-protected
+-source
+'25'
+-sourcepath
+'/run/media/user/DATA/proj/hytale/HFF/src/main/java'
+-author
+-bottom
+'Copyright &#169; 2026. All rights reserved.'
+-charset
+'UTF-8'
+-d
+'/run/media/user/DATA/proj/hytale/HFF/target/site/apidocs'
+-docencoding
+'UTF-8'
+-doctitle
+'HFF 0.3.0-Testing API'
+-use
+-version
+-windowtitle
+'HFF 0.3.0-Testing API'

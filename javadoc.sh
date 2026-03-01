@@ -1,0 +1,1 @@
+/home/user/.jdks/openjdk-25.0.2/bin/javadoc @options @packages
