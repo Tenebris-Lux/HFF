@@ -4,24 +4,26 @@ import com.hypixel.hytale.common.plugin.AuthorInfo;
 import com.hypixel.hytale.common.plugin.PluginManifest;
 import com.hypixel.hytale.common.semver.Semver;
 import com.hypixel.hytale.component.ComponentType;
-import com.hypixel.hytale.component.ResourceType;
 import com.hypixel.hytale.server.core.asset.AssetModule;
+import com.hypixel.hytale.server.core.event.events.entity.LivingEntityInventoryChangeEvent;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Interaction;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import lucis.lux.hff.commands.ShowFirearmRegistryCommand;
+import lucis.lux.hff.commands.ShowProjectilesCommand;
+import lucis.lux.hff.commands.ShowUUIDCommand;
 import lucis.lux.hff.components.AimComponent;
-import lucis.lux.hff.components.AmmoComponent;
-import lucis.lux.hff.components.FirearmStatsComponent;
+import lucis.lux.hff.components.ReloadingComponent;
 import lucis.lux.hff.data.ConfigManager;
 import lucis.lux.hff.data.HFFAssetPackGenerator;
 import lucis.lux.hff.interactions.CheckCooldownInteraction;
 import lucis.lux.hff.interactions.ReloadInteraction;
 import lucis.lux.hff.interactions.ShootFirearmInteraction;
 import lucis.lux.hff.interactions.ToggleAimInteraction;
-import lucis.lux.hff.storage.RefKeeper;
+import lucis.lux.hff.listeners.FirearmUuidInitializer;
+import lucis.lux.hff.storage.FirearmStateStorage;
 import lucis.lux.hff.systems.AimSystem;
-import lucis.lux.hff.systems.FirearmSystem;
 import lucis.lux.hff.systems.ReloadSystem;
 
 import javax.annotation.Nonnull;
@@ -32,14 +34,14 @@ import java.nio.file.Paths;
 import java.util.List;
 
 /**
- * The {@code HFF} class is the main plugin class for the hytale Firearm Framework (HFF) plugin.
+ * The {@code HFF} class is the main plugin class for the Hytale Firearm Framework (HFF) plugin.
  * This plugin provides a modular and extensible framework for implementing firearms, crossbows, and other
  * ranged weapons in Hytale.
  *
  * <p>This class is responsible for:</p>
  * <ul>
  *     <li>Registering all necessary components, systems, and interactions for the framework.</li>
- *     <li>Loading and managing configuration  files via {@link ConfigManager}.</li>
+ *     <li>Loading and managing configuration files via {@link ConfigManager}.</li>
  *     <li>Providing access to component types and resources for other parts of the plugin.</li>
  *     <li>Acting as a singleton instance for global access to the plugin's functionality.</li>
  * </ul>
@@ -57,10 +59,7 @@ import java.util.List;
  *
  * @see JavaPlugin
  * @see ConfigManager
- * @see FirearmStatsComponent
  * @see AimComponent
- * @see AmmoComponent
- * @see FirearmSystem
  * @see AimSystem
  * @see ReloadSystem
  */
@@ -70,23 +69,14 @@ public class HFF extends JavaPlugin {
      * Singleton instance of the HFF plugin.
      */
     private static HFF instance;
-    /**
-     * Resource type for managing entity references.
-     */
-    private static ResourceType<EntityStore, RefKeeper> refKeeper;
 
-    /**
-     * Component type for firearm statistics.
-     */
-    private ComponentType<EntityStore, FirearmStatsComponent> firearmStatsComponentType;
     /**
      * Component type for aiming mechanics.
      */
-    private ComponentType<EntityStore, AimComponent> aimComponentComponentType;
-    /**
-     * Component type for ammunition management.
-     */
-    private ComponentType<EntityStore, AmmoComponent> ammoComponentComponentType;
+    private ComponentType<EntityStore, AimComponent> aimComponentType;
+
+    private ComponentType<EntityStore, ReloadingComponent> reloadingComponentType;
+
 
     /**
      * Constructs a new instance of the HFF plugin.
@@ -96,15 +86,6 @@ public class HFF extends JavaPlugin {
     public HFF(@Nonnull JavaPluginInit init) {
         super(init);
         instance = this;
-    }
-
-    /**
-     * Returns the resource type for managing entity references.
-     *
-     * @return The resource type for {@link RefKeeper}
-     */
-    public static ResourceType<EntityStore, RefKeeper> getRefKeeper() {
-        return refKeeper;
     }
 
     /**
@@ -122,10 +103,11 @@ public class HFF extends JavaPlugin {
      * <ul>
      *     <li>Loading the plugin configuration.</li>
      *     <li>Registering all interactions (e.g., shooting, reloading, aiming).</li>
-     *     <li>Registering all components (e.g., firearm stats, aiming, ammunition).</li>
-     *     <li>Registering all systems (e.g., firearm logic, aiming logic, reloading logic).</li>
-     *     <li>Registering resources for managing entity references.</li>
+     *     <li>Registering all components (e.g., aiming, reloading).</li>
+     *     <li>Registering all systems (e.g., aiming logic, reloading logic).</li>
      *     <li>Generating Hytale-compatible assets.</li>
+     *     <li>Registering commands and event listeners.</li>
+     *     <li>Loading saved firearm states.</li>
      * </ul>
      */
     @Override
@@ -140,17 +122,25 @@ public class HFF extends JavaPlugin {
         this.getCodecRegistry(Interaction.CODEC).register("hff:reload", ReloadInteraction.class, ReloadInteraction.CODEC);
 
         // Register components
-        this.firearmStatsComponentType = this.getEntityStoreRegistry().registerComponent(FirearmStatsComponent.class, "FirearmStatsComponent", FirearmStatsComponent.CODEC);
-        this.getEntityStoreRegistry().registerSystem(new FirearmSystem(this.firearmStatsComponentType));
 
-        this.aimComponentComponentType = this.getEntityStoreRegistry().registerComponent(AimComponent.class, "AimComponent", AimComponent.CODEC);
-        this.getEntityStoreRegistry().registerSystem(new AimSystem(this.aimComponentComponentType));
+        this.aimComponentType = this.getEntityStoreRegistry().registerComponent(AimComponent.class, "AimComponent", AimComponent.CODEC);
+        this.getEntityStoreRegistry().registerSystem(new AimSystem(this.aimComponentType));
 
-        this.ammoComponentComponentType = this.getEntityStoreRegistry().registerComponent(AmmoComponent.class, "AmmoComponent", AmmoComponent.CODEC);
-        this.getEntityStoreRegistry().registerSystem(new ReloadSystem(this.ammoComponentComponentType));
+        this.reloadingComponentType = this.getEntityStoreRegistry().registerComponent(ReloadingComponent.class, "ReloadingComponent", ReloadingComponent.CODEC);
+        this.getEntityStoreRegistry().registerSystem(new ReloadSystem(this.reloadingComponentType));
 
         // Register resources
-        refKeeper = this.getEntityStoreRegistry().registerResource(RefKeeper.class, RefKeeper::new);
+
+        // Register commands
+        this.getCommandRegistry().registerCommand(new ShowFirearmRegistryCommand());
+        this.getCommandRegistry().registerCommand(new ShowProjectilesCommand());
+        this.getCommandRegistry().registerCommand(new ShowUUIDCommand());
+
+        // Register event listeners
+        this.getEventRegistry().registerGlobal(LivingEntityInventoryChangeEvent.class, FirearmUuidInitializer::onInventoryChanged);
+
+        // Load firearm states
+        FirearmStateStorage.loadStates();
 
         // Generate Hytale-compatible assets
         try {
@@ -191,14 +181,6 @@ public class HFF extends JavaPlugin {
         return manifest;
     }
 
-    /**
-     * Returns the component type for firearm statistics.
-     *
-     * @return The component type for {@link FirearmStatsComponent}.
-     */
-    public ComponentType<EntityStore, FirearmStatsComponent> getFirearmStatsComponentType() {
-        return firearmStatsComponentType;
-    }
 
     /**
      * Returns the component type for aiming mechanics.
@@ -206,16 +188,11 @@ public class HFF extends JavaPlugin {
      * @return The component type for {@link AimComponent}.
      */
     public ComponentType<EntityStore, AimComponent> getAimComponentType() {
-        return aimComponentComponentType;
+        return aimComponentType;
     }
 
-    /**
-     * Returns the component type for ammunition management.
-     *
-     * @return The component type for {@link AmmoComponent}.
-     */
-    public ComponentType<EntityStore, AmmoComponent> getAmmoComponentType() {
-        return ammoComponentComponentType;
+    public ComponentType<EntityStore, ReloadingComponent> getReloadingComponentType() {
+        return reloadingComponentType;
     }
 
     /**
@@ -233,6 +210,7 @@ public class HFF extends JavaPlugin {
      */
     @Override
     protected void shutdown() {
+        FirearmStateStorage.saveStates();
         super.shutdown();
     }
 }
