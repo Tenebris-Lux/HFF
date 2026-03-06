@@ -8,6 +8,7 @@ import com.hypixel.hytale.codec.schema.SchemaContext;
 import com.hypixel.hytale.codec.schema.config.ArraySchema;
 import com.hypixel.hytale.codec.schema.config.Schema;
 import com.hypixel.hytale.codec.schema.config.StringSchema;
+import lucis.lux.hff.enums.AttachmentType;
 import org.bson.BsonArray;
 import org.bson.BsonString;
 import org.bson.BsonValue;
@@ -15,7 +16,9 @@ import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 
 import java.io.Serializable;
+import java.util.EnumMap;
 import java.util.LinkedList;
+import java.util.Map;
 
 /**
  * The {@code FirearmState} class is used to track the operational state of a firearm, such as the number of
@@ -84,11 +87,26 @@ public class FirearmState implements Serializable {
      */
     private LinkedList<String> loadedProjectiles;
 
+    private final Map<AttachmentType, String> activeAttachments;
+
     /**
      * Constructs a new {@code FirearmState} with an empty list of loaded projectiles.
      */
     public FirearmState() {
+        this.activeAttachments = new EnumMap<>(AttachmentType.class);
         this.loadedProjectiles = new LinkedList<>();
+    }
+
+    public void installAttachment(AttachmentType type, String attachmentItemId){
+        activeAttachments.put(type, attachmentItemId);
+    }
+
+    public void removeAttachment(AttachmentType type){
+        activeAttachments.remove(type);
+    }
+
+    public Map<AttachmentType, String> getAttachments(){
+        return activeAttachments;
     }
 
     /**
