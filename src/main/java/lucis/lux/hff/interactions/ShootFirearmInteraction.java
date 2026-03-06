@@ -25,9 +25,11 @@ import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.AimComponent;
+import lucis.lux.hff.components.DamageComponent;
 import lucis.lux.hff.components.ReloadingComponent;
 import lucis.lux.hff.data.*;
 import lucis.lux.hff.events.FirearmShootEvent;
+import lucis.lux.hff.util.StatCalculator;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.UUID;
@@ -43,7 +45,7 @@ import java.util.UUID;
  *     <li>Calculates the direction of the projectile, taking into account spread and aiming.</li>
  *     <li>Spawns projectiles based on the firearm's rate of fire and ammunition availability.</li>
  *     <li>Applies recoil to the player.</li>
- *     <li>Dispatches an {@link FirearmShootEvent} event to notify other systems.</li>
+ *     <li>Dispatches an {@link lucis.lux.hff.events.FirearmShootEvent} event to notify other systems.</li>
  * </ul>
  *
  * <p>The shooting process considers the following factors:</p>
@@ -132,15 +134,17 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
         if (state == null) {
             state = new FirearmState();
             FirearmStateManager.registerState(weaponUuid, state);
-            if (ConfigManager.isDebugMode()) {
+            if (HFF.get().getConfigData().isDebugMode()) {
                 player.sendMessage(Message.raw("Created a state for the item"));
             }
             return;
         }
 
-        FirearmStats stats = FirearmRegistry.get(item.getItemId());
+        FirearmStats baseStats = FirearmRegistry.get(item.getItemId());
 
-        if (stats != null) {
+
+        if (baseStats != null) {
+            FirearmStats stats = StatCalculator.getModifiedStats(baseStats, state);
 
             float tickRate = Universe.get().getDefaultWorld().getTps();
 
@@ -149,50 +153,35 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
             int shotsPerTick = (int) Math.floor(tickMs / cooldownMs);
 
-            if (ConfigManager.isDebugMode()) {
+            if (HFF.get().getConfigData().isDebugMode()) {
                 player.sendMessage(Message.raw("Shots per tick: " + tickMs + '/' + cooldownMs + '=' + shotsPerTick));
             }
 
             if (shotsPerTick > 0) {
                 for (int i = 0; i < shotsPerTick; i++) {
-                    if (preIsCancelled(player, state, stats, interactionContext)) return;
-                    String projectileId = state.consumeNextProjectile();
-                    if (projectileId != null) {
+                    String ammoItemId = state.consumeNextProjectile();
+                    if (ammoItemId != null) {
                         FirearmStateManager.updateState(weaponUuid, state);
-                        this.spawnProjectile(stats, state, projectileId, interactionContext);
+                        AmmoData ammo = AmmoRegistry.get(ammoItemId);
+                        if (ammo != null) {
+                            this.spawnProjectile(stats, state, ammo, interactionContext);
+                        }
                     } else break;
                 }
             } else {
-                if (preIsCancelled(player, state, stats, interactionContext)) return;
-                String projectileId = state.consumeNextProjectile();
-                if (projectileId != null) {
+                String ammoItemId = state.consumeNextProjectile();
+                if (ammoItemId != null) {
                     FirearmStateManager.updateState(weaponUuid, state);
-                    this.spawnProjectile(stats, state, projectileId, interactionContext);
+                    AmmoData ammo = AmmoRegistry.get(ammoItemId);
+                    if (ammo != null) {
+                        this.spawnProjectile(stats, state, ammo, interactionContext);
+                    }
                 }
             }
-
-
-        } else if (ConfigManager.isDebugMode()) {
+        } else if (HFF.get().getConfigData().isDebugMode()) {
             player.sendMessage(Message.raw("Did not find any stats for the firearm"));
         }
 
-    }
-
-    private boolean preIsCancelled(Player player, FirearmState state, FirearmStats stats, InteractionContext interactionContext) {
-        IEventDispatcher<FirearmShootEvent.Pre, FirearmShootEvent.Pre> dispatcher =
-                HytaleServer.get().getEventBus().dispatchFor(FirearmShootEvent.Pre.class);
-
-        if (dispatcher.hasListener()) {
-            FirearmShootEvent.Pre event = new FirearmShootEvent.Pre(player, state, stats);
-            dispatcher.dispatch(event);
-
-            player.sendMessage(Message.raw("Dispatched"));
-            if (event.isCancelled()) {
-                interactionContext.getState().state = InteractionState.Failed;
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -201,16 +190,15 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
      * <ol>
      *     <li>Retrieves the projectile configuration from the asset map.</li>
      *     <li>Calculates the projectile's direction and velocity.</li>
-     *     <li>Dispatches an {@link FirearmShootEvent} event to notify other systems.</li>
      *     <li>Spawns the projectile using the {@link ProjectileModule}.</li>
      *     <li>Applies recoil to the player.</li>
      * </ol>
      *
      * @param stats              The firearm's statistics component.
-     * @param projectileId       The ID of the projectile to spawn.
+     * @param ammo               The Ammo statistics object.
      * @param interactionContext The context of the interaction.
      */
-    private void spawnProjectile(FirearmStats stats, FirearmState state, String projectileId, InteractionContext interactionContext) {
+    private void spawnProjectile(FirearmStats stats, FirearmState state, AmmoData ammo, InteractionContext interactionContext) {
         CommandBuffer<EntityStore> commandBuffer = interactionContext.getCommandBuffer();
         if (commandBuffer == null) {
             interactionContext.getState().state = InteractionState.Failed;
@@ -219,10 +207,10 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
         Ref<EntityStore> ref = interactionContext.getEntity();
 
-        ProjectileConfig config = ProjectileConfig.getAssetMap().getAsset(projectileId);
+        ProjectileConfig config = ProjectileConfig.getAssetMap().getAsset(ammo.projectileId());
 
         if (config == null) {
-            HFF.get().getLogger().atSevere().log("ProjectileConfig not found for ID: " + projectileId);
+            HFF.get().getLogger().atSevere().log("ProjectileConfig not found for ID: " + ammo.projectileId());
             return;
         }
 
@@ -251,7 +239,7 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
         Vector3d direction = getDirection(stats, aimComponent, orientation, movementStates);
 
-        if (ConfigManager.isDebugMode()) {
+        if (HFF.get().getConfigData().isDebugMode()) {
             HFF.get().getLogger().atInfo().log(
                     "Pitch: " + orientation.pitch +
                             "\nYaw: " + orientation.yaw +
@@ -276,7 +264,8 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
         if (stats.disabled()) return;
 
-        ProjectileModule.get().spawnProjectile(ref, commandBuffer, config, position, direction);
+        Ref<EntityStore> projectile = ProjectileModule.get().spawnProjectile(ref, commandBuffer, config, position, direction);
+        interactionContext.getCommandBuffer().addComponent(projectile, HFF.get().getDamageComponentType(), new DamageComponent(ammo.damage()));
 
         player.addLocationChange(ref, stats.horizontalRecoil(), stats.verticalRecoil(), 0, commandBuffer);
     }

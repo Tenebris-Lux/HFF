@@ -6,21 +6,18 @@
     "RotationMode": "VelocityDamped"
   },
   "Model": "Bullet_Blunderbuss",
-  "Texture": "Bullet_Blunderbuss_Texture",
   "LaunchForce": 200.0,
   "Interactions": {
     "ProjectileHit": {
       "Interactions": [
-        "Weapon_Crossbow_Primary_Combo_Condition",
         {
-          "Type": "Replace",
-          "Var": "Standard_Projectile_Impact",
-          "DefaultValue": {
-            "Interactions": [
-              "Weapon_Crossbow_Effects_Standard_Projectile_Impact"
-            ]
-          }
+          "Type": "hff:hitEnemy"
         },
+        "Common_Projectile_Despawn"
+      ]
+    },
+    "ProjectileMiss": {
+      "Interactions": [
         "Common_Projectile_Despawn"
       ]
     }
