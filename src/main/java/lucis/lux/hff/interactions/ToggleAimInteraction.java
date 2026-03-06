@@ -3,16 +3,20 @@ package lucis.lux.hff.interactions;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.event.IEventDispatcher;
+import com.hypixel.hytale.protocol.InteractionState;
 import com.hypixel.hytale.protocol.InteractionType;
+import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.entity.InteractionContext;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.CooldownHandler;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.SimpleInstantInteraction;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.AimComponent;
-import lucis.lux.hff.data.ConfigManager;
+import lucis.lux.hff.events.FirearmAimEvent;
 import lucis.lux.hff.ui.AimHUD;
 import lucis.lux.hff.ui.EmptyHUD;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
@@ -63,25 +67,40 @@ public class ToggleAimInteraction extends SimpleInstantInteraction {
         Ref<EntityStore> ref = interactionContext.getEntity();
         Player player = commandBuffer.getComponent(ref, Player.getComponentType());
         PlayerRef playerRef = commandBuffer.getComponent(ref, PlayerRef.getComponentType());
+        ItemStack weapon = interactionContext.getHeldItem();
 
-        AimComponent aimComponent = commandBuffer.getComponent(ref, HFF.get().getAimComponentType());
-        if (aimComponent == null) {
-            aimComponent = commandBuffer.addComponent(ref, HFF.get().getAimComponentType());
+        AimComponent aimComponent = commandBuffer.ensureAndGetComponent(ref, HFF.get().getAimComponentType());
 
-            player.getHudManager().setCustomHud(playerRef, new AimHUD(playerRef));
+        boolean targetAimState = (aimComponent == null) || !aimComponent.isAiming();
 
-        } else {
-            if (aimComponent.isAiming()) {
-                aimComponent.setAiming(false);
-                player.getHudManager().setCustomHud(playerRef, new EmptyHUD(playerRef));
-            } else {
-                aimComponent.setAiming(true);
-                player.getHudManager().setCustomHud(playerRef, new AimHUD(playerRef));
+        IEventDispatcher<FirearmAimEvent.Pre, FirearmAimEvent.Pre> preDispatcher = HytaleServer.get().getEventBus().dispatchFor(FirearmAimEvent.Pre.class);
+
+        if (preDispatcher.hasListener()) {
+            FirearmAimEvent.Pre event = new FirearmAimEvent.Pre(ref, weapon, targetAimState);
+            preDispatcher.dispatch(event);
+
+            if (event.isCancelled()) {
+                interactionContext.getState().state = InteractionState.Failed;
+                return;
             }
         }
 
-        if (ConfigManager.isDebugMode()) {
-            HFF.get().getLogger().atInfo().log("Toggled aim mode");
+        aimComponent.setAiming(targetAimState);
+
+        if (targetAimState) {
+            player.getHudManager().setCustomHud(playerRef, new AimHUD(playerRef));
+        } else {
+            player.getHudManager().setCustomHud(playerRef, new EmptyHUD(playerRef));
+        }
+
+        if (HFF.get().getConfigData().isDebugMode()) {
+            HFF.get().getLogger().atInfo().log("Toggled aim mode to " + targetAimState);
+        }
+
+        IEventDispatcher<FirearmAimEvent.Post, FirearmAimEvent.Post> postDispatcher = HytaleServer.get().getEventBus().dispatchFor(FirearmAimEvent.Post.class);
+        if (preDispatcher.hasListener()) {
+            FirearmAimEvent.Post event = new FirearmAimEvent.Post(ref, weapon, targetAimState);
+            postDispatcher.dispatch(event);
         }
     }
 }
