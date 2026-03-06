@@ -39,7 +39,7 @@ public class FirearmStateStorage {
     /**
      * The file where the state of firearms is stored.
      */
-    private static final File STATE_FILE = new File("hff_states.dat");
+    private static final File STATE_FILE = new File("mods/lucis.lux_HFF/hff_states.dat");
 
     /**
      * Saves the current state of all firearms to the file.

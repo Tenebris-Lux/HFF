@@ -16,7 +16,11 @@ import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Roo
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.SimpleInstantInteraction;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import lucis.lux.hff.data.*;
+import lucis.lux.hff.HFF;
+import lucis.lux.hff.data.FirearmRegistry;
+import lucis.lux.hff.data.FirearmState;
+import lucis.lux.hff.data.FirearmStateManager;
+import lucis.lux.hff.data.FirearmStats;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.UUID;
@@ -70,7 +74,7 @@ public class CheckCooldownInteraction extends SimpleInstantInteraction {
         Ref<EntityStore> ref = interactionContext.getEntity();
         Player player = commandBuffer.getComponent(ref, Player.getComponentType());
 
-        if (ConfigManager.isDebugMode()) {
+        if (HFF.get().getConfigData().isDebugMode()) {
             player.sendMessage(Message.raw("At CheckCooldownInteraction"));
         }
 
@@ -78,7 +82,7 @@ public class CheckCooldownInteraction extends SimpleInstantInteraction {
         FirearmStats stats = FirearmRegistry.get(interactionContext.getHeldItem().getItemId());
 
         if (stats == null) {
-            if (ConfigManager.isDebugMode()) {
+            if (HFF.get().getConfigData().isDebugMode()) {
                 player.sendMessage(Message.raw("Did not find any stats for this item"));
             }
             interactionContext.getState().state = InteractionState.Failed;
@@ -91,11 +95,11 @@ public class CheckCooldownInteraction extends SimpleInstantInteraction {
         if (weaponUuid != null) {
             // Check if the firearm is on cooldown
             if (cooldownHandler.isOnCooldown(new RootInteraction(), weaponUuid.toString(), stats.getCooldown(), new float[]{stats.getCooldown()}, false)) {
-                if (ConfigManager.isDebugMode()) {
+                if (HFF.get().getConfigData().isDebugMode()) {
                     player.sendMessage(Message.raw("Max Cooldown: " + cooldownHandler.getCooldown(weaponUuid.toString()).getCooldown() + " TPS: " + Universe.get().getDefaultWorld().getTps()));
                 }
                 interactionContext.getState().state = InteractionState.Failed;
-            } else if (ConfigManager.isDebugMode()) {
+            } else if (HFF.get().getConfigData().isDebugMode()) {
                 player.sendMessage(Message.raw("Not on cooldown"));
             }
         } else {
@@ -105,7 +109,7 @@ public class CheckCooldownInteraction extends SimpleInstantInteraction {
             interactionContext.setHeldItem(item.withMetadata("HFF_STATE", Codec.UUID_BINARY, weaponUuid));
             player.getInventory().getHotbar().replaceItemStackInSlot(interactionContext.getHeldItemSlot(), item, interactionContext.getHeldItem());
             FirearmStateManager.registerState(weaponUuid, new FirearmState());
-            if (ConfigManager.isDebugMode()) {
+            if (HFF.get().getConfigData().isDebugMode()) {
                 player.sendMessage(Message.raw("Created a new state for the weapon"));
             }
         }

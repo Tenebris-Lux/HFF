@@ -10,20 +10,20 @@ import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Int
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.util.Config;
 import lucis.lux.hff.commands.ShowFirearmRegistryCommand;
 import lucis.lux.hff.commands.ShowProjectilesCommand;
 import lucis.lux.hff.commands.ShowUUIDCommand;
 import lucis.lux.hff.components.AimComponent;
+import lucis.lux.hff.components.DamageComponent;
 import lucis.lux.hff.components.ReloadingComponent;
-import lucis.lux.hff.data.ConfigManager;
 import lucis.lux.hff.data.HFFAssetPackGenerator;
-import lucis.lux.hff.interactions.CheckCooldownInteraction;
-import lucis.lux.hff.interactions.ReloadInteraction;
-import lucis.lux.hff.interactions.ShootFirearmInteraction;
-import lucis.lux.hff.interactions.ToggleAimInteraction;
+import lucis.lux.hff.data.HFFConfig;
+import lucis.lux.hff.events.FirearmAimEvent;
+import lucis.lux.hff.interactions.*;
+import lucis.lux.hff.listeners.CameraAimListener;
 import lucis.lux.hff.listeners.FirearmUuidInitializer;
 import lucis.lux.hff.storage.FirearmStateStorage;
-import lucis.lux.hff.systems.AimSystem;
 import lucis.lux.hff.systems.ReloadSystem;
 
 import javax.annotation.Nonnull;
@@ -41,7 +41,7 @@ import java.util.List;
  * <p>This class is responsible for:</p>
  * <ul>
  *     <li>Registering all necessary components, systems, and interactions for the framework.</li>
- *     <li>Loading and managing configuration files via {@link ConfigManager}.</li>
+ *     <li>Loading and managing configuration files via {@link HFFConfig}.</li>
  *     <li>Providing access to component types and resources for other parts of the plugin.</li>
  *     <li>Acting as a singleton instance for global access to the plugin's functionality.</li>
  * </ul>
@@ -58,9 +58,8 @@ import java.util.List;
  * behaviours, and mechanics without modifying the core framework.</p>
  *
  * @see JavaPlugin
- * @see ConfigManager
+ * @see HFFConfig
  * @see AimComponent
- * @see AimSystem
  * @see ReloadSystem
  */
 public class HFF extends JavaPlugin {
@@ -70,12 +69,16 @@ public class HFF extends JavaPlugin {
      */
     private static HFF instance;
 
+    private final Config<HFFConfig> config;
+
     /**
      * Component type for aiming mechanics.
      */
     private ComponentType<EntityStore, AimComponent> aimComponentType;
 
     private ComponentType<EntityStore, ReloadingComponent> reloadingComponentType;
+
+    private ComponentType<EntityStore, DamageComponent> damageComponentType;
 
 
     /**
@@ -86,6 +89,9 @@ public class HFF extends JavaPlugin {
     public HFF(@Nonnull JavaPluginInit init) {
         super(init);
         instance = this;
+
+        // Load the plugin configuration
+        this.config = this.withConfig("hff_config", HFFConfig.CODEC);
     }
 
     /**
@@ -112,22 +118,24 @@ public class HFF extends JavaPlugin {
      */
     @Override
     protected void setup() {
-        // Load the plugin configuration
-        ConfigManager.loadConfig();
+
+        this.config.save();
 
         // Register interactions
         this.getCodecRegistry(Interaction.CODEC).register("hff:shoot_firearm", ShootFirearmInteraction.class, ShootFirearmInteraction.CODEC);
         this.getCodecRegistry(Interaction.CODEC).register("hff:check_cooldown", CheckCooldownInteraction.class, CheckCooldownInteraction.CODEC);
         this.getCodecRegistry(Interaction.CODEC).register("hff:toggle_aim", ToggleAimInteraction.class, ToggleAimInteraction.CODEC);
         this.getCodecRegistry(Interaction.CODEC).register("hff:reload", ReloadInteraction.class, ReloadInteraction.CODEC);
+        this.getCodecRegistry(Interaction.CODEC).register("hff:hitEnemy", HitEnemyInteraction.class, HitEnemyInteraction.CODEC);
 
         // Register components
 
         this.aimComponentType = this.getEntityStoreRegistry().registerComponent(AimComponent.class, "AimComponent", AimComponent.CODEC);
-        this.getEntityStoreRegistry().registerSystem(new AimSystem(this.aimComponentType));
 
         this.reloadingComponentType = this.getEntityStoreRegistry().registerComponent(ReloadingComponent.class, "ReloadingComponent", ReloadingComponent.CODEC);
         this.getEntityStoreRegistry().registerSystem(new ReloadSystem(this.reloadingComponentType));
+
+        this.damageComponentType = this.getEntityStoreRegistry().registerComponent(DamageComponent.class, "DamageComponent", DamageComponent.CODEC);
 
         // Register resources
 
@@ -138,6 +146,7 @@ public class HFF extends JavaPlugin {
 
         // Register event listeners
         this.getEventRegistry().registerGlobal(LivingEntityInventoryChangeEvent.class, FirearmUuidInitializer::onInventoryChanged);
+        this.getEventRegistry().register(FirearmAimEvent.Post.class, CameraAimListener::onAimStateChanged);
 
         // Load firearm states
         FirearmStateStorage.loadStates();
@@ -160,6 +169,10 @@ public class HFF extends JavaPlugin {
         } catch (Exception e) {
             getLogger().atSevere().log("Error generating assets: " + e);
         }
+    }
+
+    public HFFConfig getConfigData() {
+        return this.config.get();
     }
 
     /**
@@ -193,6 +206,10 @@ public class HFF extends JavaPlugin {
 
     public ComponentType<EntityStore, ReloadingComponent> getReloadingComponentType() {
         return reloadingComponentType;
+    }
+
+    public ComponentType<EntityStore, DamageComponent> getDamageComponentType() {
+        return damageComponentType;
     }
 
     /**

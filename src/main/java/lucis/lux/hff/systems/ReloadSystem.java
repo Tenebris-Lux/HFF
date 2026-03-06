@@ -7,8 +7,8 @@ import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.ReloadingComponent;
-import lucis.lux.hff.data.ConfigManager;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 
@@ -83,7 +83,7 @@ public class ReloadSystem extends EntityTickingSystem {
 
         if (movementState != null && (movementState.getMovementStates().jumping || movementState.getMovementStates().sprinting) && reloading.isReloading()) {
             reloading.setReloading(false);
-            if (ConfigManager.isDebugMode()) {
+            if (HFF.get().getConfigData().isDebugMode()) {
                 player.sendMessage(Message.raw("Reload interrupted: player sprinted or jumped"));
             }
         }

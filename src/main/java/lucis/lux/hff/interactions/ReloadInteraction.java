@@ -4,7 +4,6 @@ import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.event.IEventDispatcher;
 import com.hypixel.hytale.protocol.InteractionState;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.HytaleServer;
@@ -18,7 +17,6 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.ReloadingComponent;
 import lucis.lux.hff.data.*;
-import lucis.lux.hff.events.ReloadEvent;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.UUID;
@@ -90,18 +88,7 @@ public class ReloadInteraction extends SimpleInstantInteraction {
         }
 
         reloading.toggleReloading();
-        IEventDispatcher<ReloadEvent.Pre, ReloadEvent.Pre> dispatcher = HytaleServer.get().getEventBus().dispatchFor(ReloadEvent.Pre.class);
-
-        if (dispatcher.hasListener()) {
-            ReloadEvent.Pre event = new ReloadEvent.Pre(player, item, stats);
-            dispatcher.dispatch(event);
-
-            if (event.isCancelled()) {
-                interactionContext.getState().state = InteractionState.Failed;
-                return;
-            }
-        }
-        if (ConfigManager.isDebugMode()) player.sendMessage(Message.raw("Started reloading"));
+        if (HFF.get().getConfigData().isDebugMode()) player.sendMessage(Message.raw("Started reloading"));
         startReloadTask(player, item, stats, reloading);
     }
 
@@ -141,7 +128,7 @@ public class ReloadInteraction extends SimpleInstantInteraction {
                 ItemStack currentItem = player.getInventory().getItemInHand();
                 UUID currentUuid = currentItem.getFromMetadataOrNull("HFF_STATE", Codec.UUID_BINARY);
                 if (currentItem == null || !finalWeaponUuid.equals(currentUuid) || !reloadingComponent.isReloading()) {
-                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent, player, weapon, stats, false);
+                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
                     return;
                 }
 
@@ -152,27 +139,27 @@ public class ReloadInteraction extends SimpleInstantInteraction {
                     FirearmStateManager.registerState(finalWeaponUuid, state);
                 }
 
-                String projectileId = getProjectileId(player);
+                String projectileId = getAmmoItemId(player);
 
                 if (projectileId != null) {
                     state.loadProjectile(projectileId);
                     FirearmStateManager.updateState(finalWeaponUuid, state);
 
-                    if (ConfigManager.isDebugMode()) {
+                    if (HFF.get().getConfigData().isDebugMode()) {
                         player.sendMessage(Message.raw("Reloaded a projectile"));
                     }
                 } else {
-                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent, player, weapon, stats, false);
+                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
                     return;
                 }
 
                 if (state.getCurrentAmmoCount() >= stats.projectileCapacity()) {
-                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent, player, weapon, stats, true);
-                    if (ConfigManager.isDebugMode()) {
+                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
+                    if (HFF.get().getConfigData().isDebugMode()) {
                         player.sendMessage(Message.raw("Finished reloading"));
                     }
                 } else {
-                    if (ConfigManager.isDebugMode()) {
+                    if (HFF.get().getConfigData().isDebugMode()) {
                         player.sendMessage(Message.raw("Loaded " + state.getCurrentAmmoCount() + '/' + stats.projectileCapacity()));
                     }
                 }
@@ -189,18 +176,11 @@ public class ReloadInteraction extends SimpleInstantInteraction {
      * @param reloadTask         The reloading task to cancel.
      * @param reloadingComponent The reloading component to update.
      */
-    private void cancelReloadTask(ScheduledFuture<Void> reloadTask, ReloadingComponent reloadingComponent, Player player, ItemStack weapon, FirearmStats stats, boolean success) {
+    private void cancelReloadTask(ScheduledFuture<Void> reloadTask, ReloadingComponent reloadingComponent) {
         if (reloadTask != null && !reloadTask.isCancelled()) {
             reloadTask.cancel(false);
             reloadingComponent.setReloading(false);
-
-            IEventDispatcher<ReloadEvent.Post, ReloadEvent.Post> dispatcher = HytaleServer.get().getEventBus().dispatchFor(ReloadEvent.Post.class);
-
-            if (dispatcher.hasListener()) {
-                ReloadEvent.Post event = new ReloadEvent.Post(player, weapon, stats, success);
-                dispatcher.dispatch(event);
-            }
-            if (ConfigManager.isDebugMode()) {
+            if (HFF.get().getConfigData().isDebugMode()) {
                 HFF.get().getLogger().atInfo().log("Reload task cancelled");
             }
         }
@@ -220,14 +200,15 @@ public class ReloadInteraction extends SimpleInstantInteraction {
      * @param player The player whose inventory is to be searched.
      * @return The projectile ID of the found ammunition, or {@code null} if no ammunition is found.
      */
-    private String getProjectileId(Player player) {
+    private String getAmmoItemId(Player player) {
         ItemStack utility = player.getInventory().getUtilityItem();
         if (utility != null) {
             AmmoData ammo = AmmoRegistry.get(utility.getItemId());
 
             if (ammo != null) {
-                player.getInventory().getUtility().removeItemStackFromSlot(player.getInventory().getActiveUtilitySlot(), 1);
-                return ammo.projectileId();
+                String name = utility.getItemId();
+                player.getInventory().getUtility().removeItemStack(new ItemStack(utility.getItemId(), 1));
+                return name;
             }
         }
 
@@ -236,8 +217,9 @@ public class ReloadInteraction extends SimpleInstantInteraction {
             if (hotbar != null) {
                 AmmoData ammo = AmmoRegistry.get(hotbar.getItemId());
                 if (ammo != null) {
-                    player.getInventory().getHotbar().removeItemStackFromSlot(i, 1);
-                    return ammo.projectileId();
+                    String name = hotbar.getItemId();
+                    player.getInventory().getHotbar().removeItemStack(new ItemStack(hotbar.getItemId(), 1));
+                    return name;
                 }
             }
         }
@@ -247,8 +229,9 @@ public class ReloadInteraction extends SimpleInstantInteraction {
             if (storageItem != null) {
                 AmmoData ammo = AmmoRegistry.get(storageItem.getItemId());
                 if (ammo != null) {
-                    player.getInventory().getStorage().removeItemStackFromSlot(i, storageItem, 1);
-                    return ammo.projectileId();
+                    String name = storageItem.getItemId();
+                    player.getInventory().getStorage().removeItemStack(new ItemStack(storageItem.getItemId(), 1));
+                    return name;
                 }
             }
         }
