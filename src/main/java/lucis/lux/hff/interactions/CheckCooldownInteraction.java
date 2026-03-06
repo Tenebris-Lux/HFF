@@ -5,10 +5,8 @@ import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Ref;
-import com.hypixel.hytale.event.IEventDispatcher;
 import com.hypixel.hytale.protocol.InteractionState;
 import com.hypixel.hytale.protocol.InteractionType;
-import com.hypixel.hytale.server.core.HytaleServer;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.InteractionContext;
 import com.hypixel.hytale.server.core.entity.entities.Player;
@@ -19,7 +17,6 @@ import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Sim
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.data.*;
-import lucis.lux.hff.events.OnCheckTimeout;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.UUID;
@@ -31,7 +28,6 @@ import java.util.UUID;
  *
  * <p>This interaction performs the following steps:</p>
  * <ul>
- *     <li>Dispatches an {@link OnCheckTimeout} event to notify other systems about the cooldown check.</li>
  *     <li>Checks if the firearm is registered at hte {@link FirearmRegistry}. If not, the interaction fails.</li>
  *     <li>Retrieves the UUID associated with the firearm from its metadata.</li>
  *     <li>Checks if the firearm is on cooldown using the {@link CooldownHandler}.</li>
@@ -41,7 +37,6 @@ import java.util.UUID;
  * <p>This interaction is designed to work with the HFF (Hytale Firearm Framework) plugin and is
  * usually used in conjunction with the {@link ShootFirearmInteraction} class.</p>
  *
- * @see OnCheckTimeout
  * @see ShootFirearmInteraction
  * @see FirearmRegistry
  * @see FirearmStateManager
@@ -59,7 +54,6 @@ public class CheckCooldownInteraction extends SimpleInstantInteraction {
      *
      * <p>This method performs the following steps:</p>
      * <ol>
-     *     <li>Dispatches an {@link OnCheckTimeout} event to notify other systems.</li>
      *     <li>Checks if the firearm is registered at the {@link FirearmRegistry}. If not, the interaction fails.</li>
      *     <li>Retrieves the UUID associated with the firearm from its metadata.</li>
      *     <li>Checks if the firearm is on cooldown using the {@link CooldownHandler}.</li>
@@ -78,14 +72,6 @@ public class CheckCooldownInteraction extends SimpleInstantInteraction {
 
         if (ConfigManager.isDebugMode()) {
             player.sendMessage(Message.raw("At CheckCooldownInteraction"));
-        }
-
-        // Dispatch the OnCheckTimeout event
-        IEventDispatcher<OnCheckTimeout, OnCheckTimeout> dispatcher = HytaleServer.get().getEventBus().dispatchFor(OnCheckTimeout.class);
-
-        if (dispatcher.hasListener()) {
-            OnCheckTimeout event = new OnCheckTimeout("data");
-            dispatcher.dispatch(event);
         }
 
         // Retrieve the firearm's statistics

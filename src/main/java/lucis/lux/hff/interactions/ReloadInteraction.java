@@ -4,6 +4,7 @@ import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.event.IEventDispatcher;
 import com.hypixel.hytale.protocol.InteractionState;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.HytaleServer;
@@ -17,6 +18,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.ReloadingComponent;
 import lucis.lux.hff.data.*;
+import lucis.lux.hff.events.ReloadEvent;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.UUID;
@@ -88,6 +90,17 @@ public class ReloadInteraction extends SimpleInstantInteraction {
         }
 
         reloading.toggleReloading();
+        IEventDispatcher<ReloadEvent.Pre, ReloadEvent.Pre> dispatcher = HytaleServer.get().getEventBus().dispatchFor(ReloadEvent.Pre.class);
+
+        if (dispatcher.hasListener()) {
+            ReloadEvent.Pre event = new ReloadEvent.Pre(player, item, stats);
+            dispatcher.dispatch(event);
+
+            if (event.isCancelled()) {
+                interactionContext.getState().state = InteractionState.Failed;
+                return;
+            }
+        }
         if (ConfigManager.isDebugMode()) player.sendMessage(Message.raw("Started reloading"));
         startReloadTask(player, item, stats, reloading);
     }
@@ -128,7 +141,7 @@ public class ReloadInteraction extends SimpleInstantInteraction {
                 ItemStack currentItem = player.getInventory().getItemInHand();
                 UUID currentUuid = currentItem.getFromMetadataOrNull("HFF_STATE", Codec.UUID_BINARY);
                 if (currentItem == null || !finalWeaponUuid.equals(currentUuid) || !reloadingComponent.isReloading()) {
-                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
+                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent, player, weapon, stats, false);
                     return;
                 }
 
@@ -149,12 +162,12 @@ public class ReloadInteraction extends SimpleInstantInteraction {
                         player.sendMessage(Message.raw("Reloaded a projectile"));
                     }
                 } else {
-                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
+                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent, player, weapon, stats, false);
                     return;
                 }
 
                 if (state.getCurrentAmmoCount() >= stats.projectileCapacity()) {
-                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
+                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent, player, weapon, stats, true);
                     if (ConfigManager.isDebugMode()) {
                         player.sendMessage(Message.raw("Finished reloading"));
                     }
@@ -176,10 +189,17 @@ public class ReloadInteraction extends SimpleInstantInteraction {
      * @param reloadTask         The reloading task to cancel.
      * @param reloadingComponent The reloading component to update.
      */
-    private void cancelReloadTask(ScheduledFuture<Void> reloadTask, ReloadingComponent reloadingComponent) {
+    private void cancelReloadTask(ScheduledFuture<Void> reloadTask, ReloadingComponent reloadingComponent, Player player, ItemStack weapon, FirearmStats stats, boolean success) {
         if (reloadTask != null && !reloadTask.isCancelled()) {
             reloadTask.cancel(false);
             reloadingComponent.setReloading(false);
+
+            IEventDispatcher<ReloadEvent.Post, ReloadEvent.Post> dispatcher = HytaleServer.get().getEventBus().dispatchFor(ReloadEvent.Post.class);
+
+            if (dispatcher.hasListener()) {
+                ReloadEvent.Post event = new ReloadEvent.Post(player, weapon, stats, success);
+                dispatcher.dispatch(event);
+            }
             if (ConfigManager.isDebugMode()) {
                 HFF.get().getLogger().atInfo().log("Reload task cancelled");
             }

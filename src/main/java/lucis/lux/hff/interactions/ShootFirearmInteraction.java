@@ -27,7 +27,7 @@ import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.AimComponent;
 import lucis.lux.hff.components.ReloadingComponent;
 import lucis.lux.hff.data.*;
-import lucis.lux.hff.events.OnShoot;
+import lucis.lux.hff.events.FirearmShootEvent;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.UUID;
@@ -43,7 +43,7 @@ import java.util.UUID;
  *     <li>Calculates the direction of the projectile, taking into account spread and aiming.</li>
  *     <li>Spawns projectiles based on the firearm's rate of fire and ammunition availability.</li>
  *     <li>Applies recoil to the player.</li>
- *     <li>Dispatches an {@link OnShoot} event to notify other systems.</li>
+ *     <li>Dispatches an {@link FirearmShootEvent} event to notify other systems.</li>
  * </ul>
  *
  * <p>The shooting process considers the following factors:</p>
@@ -155,23 +155,44 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
 
             if (shotsPerTick > 0) {
                 for (int i = 0; i < shotsPerTick; i++) {
+                    if (preIsCancelled(player, state, stats, interactionContext)) return;
                     String projectileId = state.consumeNextProjectile();
                     if (projectileId != null) {
                         FirearmStateManager.updateState(weaponUuid, state);
-                        this.spawnProjectile(stats, projectileId, interactionContext);
+                        this.spawnProjectile(stats, state, projectileId, interactionContext);
                     } else break;
                 }
             } else {
+                if (preIsCancelled(player, state, stats, interactionContext)) return;
                 String projectileId = state.consumeNextProjectile();
                 if (projectileId != null) {
                     FirearmStateManager.updateState(weaponUuid, state);
-                    this.spawnProjectile(stats, projectileId, interactionContext);
+                    this.spawnProjectile(stats, state, projectileId, interactionContext);
                 }
             }
+
+
         } else if (ConfigManager.isDebugMode()) {
             player.sendMessage(Message.raw("Did not find any stats for the firearm"));
         }
 
+    }
+
+    private boolean preIsCancelled(Player player, FirearmState state, FirearmStats stats, InteractionContext interactionContext) {
+        IEventDispatcher<FirearmShootEvent.Pre, FirearmShootEvent.Pre> dispatcher =
+                HytaleServer.get().getEventBus().dispatchFor(FirearmShootEvent.Pre.class);
+
+        if (dispatcher.hasListener()) {
+            FirearmShootEvent.Pre event = new FirearmShootEvent.Pre(player, state, stats);
+            dispatcher.dispatch(event);
+
+            player.sendMessage(Message.raw("Dispatched"));
+            if (event.isCancelled()) {
+                interactionContext.getState().state = InteractionState.Failed;
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -180,7 +201,7 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
      * <ol>
      *     <li>Retrieves the projectile configuration from the asset map.</li>
      *     <li>Calculates the projectile's direction and velocity.</li>
-     *     <li>Dispatches an {@link OnShoot} event to notify other systems.</li>
+     *     <li>Dispatches an {@link FirearmShootEvent} event to notify other systems.</li>
      *     <li>Spawns the projectile using the {@link ProjectileModule}.</li>
      *     <li>Applies recoil to the player.</li>
      * </ol>
@@ -189,7 +210,7 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
      * @param projectileId       The ID of the projectile to spawn.
      * @param interactionContext The context of the interaction.
      */
-    private void spawnProjectile(FirearmStats stats, String projectileId, InteractionContext interactionContext) {
+    private void spawnProjectile(FirearmStats stats, FirearmState state, String projectileId, InteractionContext interactionContext) {
         CommandBuffer<EntityStore> commandBuffer = interactionContext.getCommandBuffer();
         if (commandBuffer == null) {
             interactionContext.getState().state = InteractionState.Failed;
@@ -246,10 +267,10 @@ public class ShootFirearmInteraction extends SimpleInstantInteraction {
         Vector3d position = transform.getPosition().clone();
         position.y += 1.6;
 
-        IEventDispatcher<OnShoot, OnShoot> dispatcher = HytaleServer.get().getEventBus().dispatchFor(OnShoot.class);
+        IEventDispatcher<FirearmShootEvent.Post, FirearmShootEvent.Post> dispatcher = HytaleServer.get().getEventBus().dispatchFor(FirearmShootEvent.Post.class);
 
         if (dispatcher.hasListener()) {
-            OnShoot event = new OnShoot("data");
+            FirearmShootEvent.Post event = new FirearmShootEvent.Post(player, state, stats, position, direction);
             dispatcher.dispatch(event);
         }
 
