@@ -4,6 +4,7 @@ import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.event.IEventDispatcher;
 import com.hypixel.hytale.protocol.InteractionState;
 import com.hypixel.hytale.protocol.InteractionType;
 import com.hypixel.hytale.server.core.HytaleServer;
@@ -16,37 +17,47 @@ import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Sim
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
 import lucis.lux.hff.components.ReloadingComponent;
-import lucis.lux.hff.data.*;
+import lucis.lux.hff.data.AmmoData;
+import lucis.lux.hff.data.FirearmState;
+import lucis.lux.hff.data.FirearmStats;
+import lucis.lux.hff.data.MagazineData;
+import lucis.lux.hff.data.registry.Registries;
+import lucis.lux.hff.enums.MagazineType;
+import lucis.lux.hff.events.ReloadEvent;
+import lucis.lux.hff.util.StatCalculator;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.UUID;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The {@code ReloadInteraction} class is a {@link SimpleInstantInteraction} responsible for handling
  * the reload mechanism of firearms in the game. This interaction is triggered when a player attempts
- * to reload a firearm, initiating a timed sequence that gradually reloads the ammunition.
+ * to reload a firearm, initiating a sequence that reloads the ammunition.
  *
- * <p>When triggered, this interaction:
+ * <p>When triggered, this interaction:</p>
  * <ul>
- *     <li>Toggles the reloading state of the firearm.</li>
- *     <li>Schedules a timed task to incrementally reload ammunition, using {@link HytaleServer#SCHEDULED_EXECUTOR}.</li>
- *     <li>Provides feedback to the player in debug mode, indicating the progress of the reloading process.</li>
- * </ul></p>
+ *   <li>Dispatches a {@link ReloadEvent.Pre} event to notify other systems about the reloading process.</li>
+ *   <li>Toggles the reloading state of the firearm.</li>
+ *   <li>Handles the reloading process, either by loading individual projectiles or by inserting a magazine.</li>
+ *   <li>Provides feedback to the player in debug mode, indicating the progress of the reloading process.</li>
+ *   <li>Dispatches a {@link ReloadEvent.Post} event to notify other systems about the completion of the reloading process.</li>
+ * </ul>
  *
- * <p>The reloading process is asynchronous and uses scheduler to simulate
- * the loading of each projectile. Each projectile is loaded after a delay defined by the firearm's
- * reload time. The process stops when the firearm's ammunition capacity is reached or if reloading
- * is interrupted.</p>
+ * <p>The reloading process is synchronous and handles the reloading in a single step, either by loading
+ * projectiles directly or by swapping magazines.</p>
+ *
+ * <p>This interaction supports both internal and external magazine systems.</p>
  */
 public class ReloadInteraction extends SimpleInstantInteraction {
 
     /**
      * The {@link BuilderCodec} for serializing and deserializing this interaction.
      */
-    public static final BuilderCodec<ReloadInteraction> CODEC = BuilderCodec.builder(ReloadInteraction.class, ReloadInteraction::new, SimpleInstantInteraction.CODEC).build();
+    public static final BuilderCodec<ReloadInteraction> CODEC = BuilderCodec.builder(
+            ReloadInteraction.class,
+            ReloadInteraction::new,
+            SimpleInstantInteraction.CODEC
+    ).build();
 
     /**
      * Called when the interaction is first run. This method initializes the reloading process
@@ -54,9 +65,12 @@ public class ReloadInteraction extends SimpleInstantInteraction {
      *
      * <p>The following steps are performed:</p>
      * <ol>
-     *     <li>Retrieves the player and the held item from the interaction context.</li>
-     *     <li>Toggles the reloading state of the firearm.</li>
-     *     <li>Schedules the timed task to reload a projectile.</li>
+     *   <li>Retrieves the player and the held item from the interaction context.</li>
+     *   <li>Checks if the firearm is jammed and handles unjamming if necessary.</li>
+     *   <li>Dispatches a {@link ReloadEvent.Pre} event to notify other systems about the reloading process.</li>
+     *   <li>Toggles the reloading state of the firearm.</li>
+     *   <li>Handles the reloading process based on the magazine type (internal or external).</li>
+     *   <li>Dispatches a {@link ReloadEvent.Post} event to notify other systems about the completion of the reloading process.</li>
      * </ol>
      *
      * @param interactionType    The type of interaction.
@@ -75,9 +89,32 @@ public class ReloadInteraction extends SimpleInstantInteraction {
         Player player = commandBuffer.getComponent(ref, Player.getComponentType());
         ItemStack item = interactionContext.getHeldItem();
 
-        FirearmStats stats = FirearmRegistry.get(item.getItemId());
+        FirearmStats stats = Registries.FIREARM_STATS.get(item.getItemId());
         if (stats == null) {
             interactionContext.getState().state = InteractionState.Failed;
+            return;
+        }
+
+        UUID weaponUuid = item.getFromMetadataOrNull("HFF_STATE", Codec.UUID_BINARY);
+        if (weaponUuid == null) {
+            weaponUuid = UUID.randomUUID();
+            player.sendMessage(Message.raw("Changed UUID: " + weaponUuid));
+            ItemStack newWeapon = item.withMetadata("HFF_STATE", Codec.UUID_BINARY, weaponUuid);
+            player.getInventory().getHotbar().replaceItemStackInSlot(player.getInventory().getActiveHotbarSlot(), item, newWeapon);
+        }
+        FirearmState state = Registries.FIREARM_STATES.get(weaponUuid);
+
+        stats = StatCalculator.getModifiedStats(stats, state);
+
+        if (state.isJammed()) {
+            state.setJammed(false);
+            state.consumeNextProjectile(stats);
+
+            Registries.FIREARM_STATES.update(weaponUuid, state);
+
+            if (HFF.get().getConfigData().isDebugMode()) {
+                player.sendMessage(Message.raw("Weapon unjammed"));
+            }
             return;
         }
 
@@ -87,155 +124,141 @@ public class ReloadInteraction extends SimpleInstantInteraction {
             return;
         }
 
+        IEventDispatcher<ReloadEvent.Pre, ReloadEvent.Pre> preDispatcher = HytaleServer.get().getEventBus().dispatchFor(ReloadEvent.Pre.class);
+        if (preDispatcher.hasListener()) {
+            ReloadEvent.Pre preEvent = new ReloadEvent.Pre(player, item, stats);
+            preDispatcher.dispatch(preEvent);
+
+            if (preEvent.isCancelled()) {
+                interactionContext.getState().state = InteractionState.Failed;
+                return;
+            }
+
+            stats = preEvent.getStats();
+        }
+
         reloading.toggleReloading();
         if (HFF.get().getConfigData().isDebugMode()) player.sendMessage(Message.raw("Started reloading"));
-        startReloadTask(player, item, stats, reloading);
+
+        boolean isHardcore = HFF.get().getConfigData().isHardcoreMagazineSystem();
+        boolean isExternalMag = MagazineType.EXTERNAL.equals(stats.magazineType());
+
+        boolean reloadSuccess = false;
+
+        if (isHardcore && isExternalMag) {
+            reloadSuccess = handleMagazineReload(player, state, stats, weaponUuid);
+        } else {
+            reloadSuccess = handleInternalReload(player, state, stats, weaponUuid);
+        }
+
+        if (reloadSuccess) {
+            Registries.FIREARM_STATES.update(weaponUuid, state);
+            cooldownHandler.getCooldown(weaponUuid.toString(), stats.reloadTime(), new float[0], true, false);
+        }
+
+        IEventDispatcher<ReloadEvent.Post, ReloadEvent.Post> postDispatcher = HytaleServer.get().getEventBus().dispatchFor(ReloadEvent.Post.class);
+        if (postDispatcher.hasListener()) {
+            ReloadEvent.Post postEvent = new ReloadEvent.Post(player, item, stats, reloadSuccess);
+            postDispatcher.dispatch(postEvent);
+        }
     }
 
     /**
-     * Schedules a timed task to incrementally reload the firearm's ammunition.
-     * This method is called to start the reloading process and schedules a task that runs at fixed intervals.
+     * Handles the reloading process for firearms with an external magazine system.
      *
      * <p>The following steps are performed:</p>
      * <ol>
-     *   <li>Ensures the weapon has a UUID. If not, a new UUID is generated and assigned.</li>
-     *   <li>Schedules a task to load projectiles at fixed intervals.</li>
-     *   <li>Checks if the reloading process should continue or be cancelled.</li>
-     *   <li>Loads projectiles from the player's inventory and updates the firearm's state.</li>
+     *   <li>Checks if the player has a valid magazine in the utility slot.</li>
+     *   <li>Validates the magazine's calibre against the firearm's calibre.</li>
+     *   <li>Inserts the magazine into the firearm.</li>
      * </ol>
      *
-     * @param player             The player who is reloading the firearm.
-     * @param weapon             The firearm item being reloaded.
-     * @param stats              The statistics of the firearm.
-     * @param reloadingComponent The reloading component of the firearm.
+     * @param player     The player who is reloading the firearm.
+     * @param state      The state of the firearm.
+     * @param stats      The statistics of the firearm.
+     * @param weaponUuid The UUID of the firearm.
+     * @return {@code true} if the magazine was successfully inserted, {@code false} otherwise.
      */
-    private void startReloadTask(Player player, ItemStack weapon, FirearmStats stats, ReloadingComponent reloadingComponent) {
+    private boolean handleMagazineReload(Player player, FirearmState state, FirearmStats stats, UUID weaponUuid) {
+        ItemStack utilityItem = player.getInventory().getUtilityItem();
 
-        UUID weaponUuid = weapon.getFromMetadataOrNull("HFF_STATE", Codec.UUID_BINARY);
-        player.sendMessage(Message.raw("Starting UUID: " + weaponUuid));
-        if (weaponUuid == null) {
-            weaponUuid = UUID.randomUUID();
-            player.sendMessage(Message.raw("Changed UUID: " + weaponUuid));
-            ItemStack newWeapon = weapon.withMetadata("HFF_STATE", Codec.UUID_BINARY, weaponUuid);
-            player.getInventory().getHotbar().replaceItemStackInSlot(player.getInventory().getActiveHotbarSlot(), weapon, newWeapon);
+        if (utilityItem == null) {
+            player.sendMessage(Message.raw("You need a magazine in your left hand to reload."));
+            return false;
         }
 
-        AtomicReference<ScheduledFuture<Void>> reloadTaskRef = new AtomicReference<>();
-        UUID finalWeaponUuid = weaponUuid;
-        @SuppressWarnings("unchecked") final ScheduledFuture<Void> reloadTask = (ScheduledFuture<Void>) HytaleServer.SCHEDULED_EXECUTOR.scheduleAtFixedRate(() -> {
-            player.getWorld().execute(() -> {
+        MagazineData magazine = Registries.MAGAZINE_DATA.get(utilityItem.getItemId());
+        UUID utilityUuid = utilityItem.getFromMetadataOrNull("HFF_STATE", Codec.UUID_BINARY);
 
-                ItemStack currentItem = player.getInventory().getItemInHand();
-                UUID currentUuid = currentItem.getFromMetadataOrNull("HFF_STATE", Codec.UUID_BINARY);
-                if (currentItem == null || !finalWeaponUuid.equals(currentUuid) || !reloadingComponent.isReloading()) {
-                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
-                    return;
-                }
+        if (magazine == null) {
+            player.sendMessage(Message.raw("That is not a valid magazine."));
+            return false;
+        }
 
-                FirearmState state = FirearmStateManager.getState(finalWeaponUuid);
+        if (!magazine.calibre().equals(stats.calibre())) {
+            player.sendMessage(Message.raw("Wrong calibre! This weapon needs " + stats.calibre() + "."));
+            return false;
+        }
 
-                if (state == null) {
-                    state = new FirearmState();
-                    FirearmStateManager.registerState(finalWeaponUuid, state);
-                }
+        if (state.getInsertedMagazineUuid() != null) {
+            ItemStack returnedMagazine = new ItemStack(state.getInsertedMagazineName());
+            returnedMagazine = returnedMagazine.withMetadata("HFF_STATE", Codec.UUID_BINARY, state.getInsertedMagazineUuid());
+            player.getInventory().getStorage().addItemStack(returnedMagazine);
+        }
 
-                String projectileId = getAmmoItemId(player);
-
-                if (projectileId != null) {
-                    state.loadProjectile(projectileId);
-                    FirearmStateManager.updateState(finalWeaponUuid, state);
-
-                    if (HFF.get().getConfigData().isDebugMode()) {
-                        player.sendMessage(Message.raw("Reloaded a projectile"));
-                    }
-                } else {
-                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
-                    return;
-                }
-
-                if (state.getCurrentAmmoCount() >= stats.projectileCapacity()) {
-                    cancelReloadTask(reloadTaskRef.get(), reloadingComponent);
-                    if (HFF.get().getConfigData().isDebugMode()) {
-                        player.sendMessage(Message.raw("Finished reloading"));
-                    }
-                } else {
-                    if (HFF.get().getConfigData().isDebugMode()) {
-                        player.sendMessage(Message.raw("Loaded " + state.getCurrentAmmoCount() + '/' + stats.projectileCapacity()));
-                    }
-                }
-            });
-        }, (long) stats.reloadTime(), (long) stats.reloadTime(), TimeUnit.SECONDS);
-
-        reloadTaskRef.set(reloadTask);
-        HFF.get().getTaskRegistry().registerTask(reloadTask);
+        state.setInsertedMagazineUuid(utilityUuid);
+        state.setInsertedMagazineName(utilityItem.getItemId());
+        Registries.FIREARM_STATES.update(weaponUuid, state);
+        player.getInventory().getUtility().removeItemStack(utilityItem);
+        return true;
     }
 
     /**
-     * Cancels the reloading task and updates the reloading state.
+     * Handles the reloading process for firearms with an internal magazine system.
      *
-     * @param reloadTask         The reloading task to cancel.
-     * @param reloadingComponent The reloading component to update.
-     */
-    private void cancelReloadTask(ScheduledFuture<Void> reloadTask, ReloadingComponent reloadingComponent) {
-        if (reloadTask != null && !reloadTask.isCancelled()) {
-            reloadTask.cancel(false);
-            reloadingComponent.setReloading(false);
-            if (HFF.get().getConfigData().isDebugMode()) {
-                HFF.get().getLogger().atInfo().log("Reload task cancelled");
-            }
-        }
-    }
-
-    /**
-     * Searches the player's inventory for ammunition and returns the projectile ID of the first found ammunition.
-     * The ammunition is removed from the player's inventory once found.
-     *
-     * <p>The following locations are searched in order:</p>
+     * <p>The following steps are performed:</p>
      * <ol>
-     *   <li>Utility slot.</li>
-     *   <li>Hotbar slots.</li>
-     *   <li>Storage slots.</li>
+     *   <li>Checks if the firearm is already fully loaded.</li>
+     *   <li>Checks if the player has valid ammunition in the utility slot.</li>
+     *   <li>Loads the ammunition into the firearm.</li>
      * </ol>
      *
-     * @param player The player whose inventory is to be searched.
-     * @return The projectile ID of the found ammunition, or {@code null} if no ammunition is found.
+     * @param player     The player who is reloading the firearm.
+     * @param state      The state of the firearm.
+     * @param stats      The statistics of the firearm.
+     * @param weaponUuid The UUID of the firearm.
+     * @return {@code true} if the ammunition was successfully loaded, {@code false} otherwise.
      */
-    private String getAmmoItemId(Player player) {
+    private boolean handleInternalReload(Player player, FirearmState state, FirearmStats stats, UUID weaponUuid) {
+        int missingBullets = stats.projectileCapacity() - state.getCurrentAmmoCount();
+        if (missingBullets <= 0) {
+            player.sendMessage(Message.raw("Weapon is already fully loaded."));
+            return false;
+        }
+
         ItemStack utility = player.getInventory().getUtilityItem();
-        if (utility != null) {
-            AmmoData ammo = AmmoRegistry.get(utility.getItemId());
 
-            if (ammo != null) {
+        if (utility == null) {
+            player.sendMessage(Message.raw("You need ammo in your left hand to reload."));
+            return false;
+        }
+        AmmoData ammo = Registries.AMMO_DATA.get(utility.getItemId());
+
+        if (ammo != null) {
+            if (ammo.calibre().equals(stats.calibre())) {
                 String name = utility.getItemId();
-                player.getInventory().getUtility().removeItemStack(new ItemStack(utility.getItemId(), 1));
-                return name;
+
+                state.loadProjectile(name);
+                Registries.FIREARM_STATES.update(weaponUuid, state);
+
+                player.getInventory().getUtility().removeItemStackFromSlot(player.getInventory().getActiveUtilitySlot(), 1);
+
+                return true;
+            } else {
+                player.sendMessage(Message.raw("Wrong ammo calibre."));
             }
         }
 
-        for (short i = 0; i < 9; i++) {
-            ItemStack hotbar = player.getInventory().getHotbar().getItemStack(i);
-            if (hotbar != null) {
-                AmmoData ammo = AmmoRegistry.get(hotbar.getItemId());
-                if (ammo != null) {
-                    String name = hotbar.getItemId();
-                    player.getInventory().getHotbar().removeItemStack(new ItemStack(hotbar.getItemId(), 1));
-                    return name;
-                }
-            }
-        }
-
-        for (short i = 0; i < player.getInventory().getStorage().getCapacity(); i++) {
-            ItemStack storageItem = player.getInventory().getStorage().getItemStack(i);
-            if (storageItem != null) {
-                AmmoData ammo = AmmoRegistry.get(storageItem.getItemId());
-                if (ammo != null) {
-                    String name = storageItem.getItemId();
-                    player.getInventory().getStorage().removeItemStack(new ItemStack(storageItem.getItemId(), 1));
-                    return name;
-                }
-            }
-        }
-
-        return null;
+        return false;
     }
 }

@@ -39,10 +39,12 @@ public abstract class ReloadEvent implements IEvent<Void> {
      * The player who is reloading the firearm.
      */
     protected final Player player;
+
     /**
      * The firearm item being reloaded.
      */
     protected final ItemStack weapon;
+
     /**
      * The statistics of the firearm being reloaded.
      */

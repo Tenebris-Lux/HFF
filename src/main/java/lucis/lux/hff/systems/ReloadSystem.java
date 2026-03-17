@@ -33,7 +33,7 @@ import org.checkerframework.checker.nullness.compatqual.NullableDecl;
  * @see ReloadingComponent
  * @see MovementStatesComponent
  */
-public class ReloadSystem extends EntityTickingSystem {
+public class ReloadSystem extends EntityTickingSystem<EntityStore> {
     /**
      * The component type for ammunition, used to identify entities with reloading components.
      */

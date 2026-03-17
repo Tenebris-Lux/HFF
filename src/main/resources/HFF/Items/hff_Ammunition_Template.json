@@ -33,8 +33,11 @@
       "Bullet"
     ]
   },
-  "Components": {
-    "hff:ammo": {
+  "Utility": {
+    "Usable": true
+  },
+  "HFF": {
+    "ammo": {
       "calibre": "default",
       "projectileId": "hff_Example_Projectile",
       "damage": 10.0

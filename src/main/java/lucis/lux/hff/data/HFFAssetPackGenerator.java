@@ -3,9 +3,8 @@ package lucis.lux.hff.data;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import lucis.lux.hff.HFF;
-import lucis.lux.hff.enums.FireMode;
-import lucis.lux.hff.enums.FirearmClass;
-import lucis.lux.hff.enums.FirearmType;
+import lucis.lux.hff.data.registry.Registries;
+import lucis.lux.hff.enums.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,15 +21,15 @@ import java.util.zip.ZipFile;
 /**
  * The {@code HFFAssetPackGenerator} class is responsible for generating asset packs for the HFF (Hytale Firearm Framework) plugin.
  * This class scans JAR and ZIP files in specified directories for asset files, processes them, and generates a new asset pack
- * that is compatible with Hytale. It also registers firearm and ammunition data in the respective registries.
+ * that is compatible with Hytale. It also registers firearm, ammunition, magazine, and attachment data in the respective registries.
  *
  * <p>This class performs the following tasks:</p>
  * <ul>
- *     <li>Creates a new ZIP file system for the output asset pack.</li>
- *     <li>Scans specified directories for JAR and ZIP files containing assets.</li>
- *     <li>Processes each asset file, removing HFF-specific fields to ensure compatibility with Hytale.</li>
- *     <li>Copies asset files (models, textures, icons, projectile configs) into the new asset pack.</li>
- *     <li>Registers firearm and ammunition data in the {@link FirearmRegistry} and {@link AmmoRegistry}.</li>
+ *   <li>Creates a new ZIP file system for the output asset pack.</li>
+ *   <li>Scans specified directories for JAR and ZIP files containing assets.</li>
+ *   <li>Processes each asset file, removing HFF-specific fields to ensure compatibility with Hytale.</li>
+ *   <li>Copies asset files (models, textures, icons, projectile configs) into the new asset pack.</li>
+ *   <li>Registers firearm, ammunition, magazine, and attachment data in the respective registries.</li>
  * </ul>
  *
  * <p>This class is typically used at runtime to generate asset packs from mod files.</p>
@@ -41,8 +40,16 @@ public class HFFAssetPackGenerator {
      * Generates an asset pack by scanning the specified directories for JAR and ZIP files containing assets.
      * The generated asset pack is saved to the specified output path.
      *
+     * <p>The following steps are performed:</p>
+     * <ol>
+     *   <li>Creates the parent directory for the output asset pack if it does not exist.</li>
+     *   <li>Deletes the output file if it already exists.</li>
+     *   <li>Creates a new ZIP file system for the output asset pack.</li>
+     *   <li>Scans the specified directories for JAR and ZIP files containing assets.</li>
+     * </ol>
+     *
      * @param outputPackPath The path where the generated asset pack will be saved.
-     * @param modsDir        The directory to scan for JAT and ZIP files containing assets.
+     * @param modsDir        The directory to scan for JAR and ZIP files containing assets.
      */
     public static void generateAssetPack(String outputPackPath, String modsDir) {
         try {
@@ -68,8 +75,15 @@ public class HFFAssetPackGenerator {
     /**
      * Scans the specified directory for JAR and ZIP files and processes each file found.
      *
+     * <p>The following steps are performed:</p>
+     * <ol>
+     *   <li>Checks if the directory exists and is a directory.</li>
+     *   <li>Scans the directory for JAR and ZIP files.</li>
+     *   <li>Processes each JAR or ZIP file found.</li>
+     * </ol>
+     *
      * @param zipFs   The file system of the output ZIP file.
-     * @param modsDir The directory to scan for JAT and ZIP files.
+     * @param modsDir The directory to scan for JAR and ZIP files.
      */
     private static void scanModsDirectory(FileSystem zipFs, String modsDir) {
         Path modsPath = Paths.get(modsDir);
@@ -83,12 +97,19 @@ public class HFFAssetPackGenerator {
                 HFF.get().getLogger().atSevere().log("Error scanning mod folder: " + e.getMessage());
             }
         } else {
-            HFF.get().getLogger().atSevere().log("Did mot find mods folder: " + modsDir);
+            HFF.get().getLogger().atSevere().log("Did not find mods folder: " + modsDir);
         }
     }
 
     /**
-     * Scan the specified JAR file for asset files and processes each asset found.
+     * Scans the specified JAR file for asset files and processes each asset found.
+     *
+     * <p>The following steps are performed:</p>
+     * <ol>
+     *   <li>Opens the JAR file.</li>
+     *   <li>Iterates over all entries in the JAR file.</li>
+     *   <li>Processes each asset file that contains "Items/" and ends with ".json".</li>
+     * </ol>
      *
      * @param zipFs   The file system of the output ZIP file.
      * @param jarPath The path to the JAR file to scan.
@@ -112,8 +133,18 @@ public class HFFAssetPackGenerator {
     /**
      * Processes an asset file from a JAR file, generating a Hytale-compatible asset file and copying referenced assets.
      *
+     * <p>The following steps are performed:</p>
+     * <ol>
+     *   <li>Reads the JSON asset file from the JAR.</li>
+     *   <li>Removes HFF-specific fields to ensure compatibility with Hytale.</li>
+     *   <li>Copies the asset file to the output ZIP file system.</li>
+     *   <li>Copies referenced model, texture, and icon files to the output ZIP file system.</li>
+     *   <li>Copies projectile configuration files to the output ZIP file system.</li>
+     *   <li>Registers firearm, ammunition, magazine, and attachment data in the respective registries.</li>
+     * </ol>
+     *
      * @param zipFs     The file system of the output ZIP file.
-     * @param jarFile   The JAT file containing the asset.
+     * @param jarFile   The JAR file containing the asset.
      * @param entryPath The path to the asset file within the JAR.
      * @param itemName  The name of the item associated with the asset.
      */
@@ -147,10 +178,10 @@ public class HFFAssetPackGenerator {
                 copyAssetFromJar(zipFs, jarFile, combinedAsset.get("Icon").getAsString(), "Common/" + combinedAsset.get("Icon").getAsString());
             }
 
-            if (combinedAsset.has("Components")) {
-                JsonObject components = combinedAsset.getAsJsonObject("Components");
-                if (components.has("hff:ammo")) {
-                    JsonObject ammo = components.getAsJsonObject("hff:ammo");
+            if (combinedAsset.has("HFF")) {
+                JsonObject hffBlock = combinedAsset.getAsJsonObject("HFF");
+                if (hffBlock.has("ammo")) {
+                    JsonObject ammo = hffBlock.getAsJsonObject("ammo");
                     if (ammo.has("projectileId")) {
                         copyAssetFromJar(zipFs, jarFile, "ProjectileConfigs/" + ammo.get("projectileId").getAsString() + ".json", "Server/ProjectileConfigs/" + ammo.get("projectileId").getAsString() + ".json");
                     }
@@ -166,24 +197,42 @@ public class HFFAssetPackGenerator {
     }
 
     /**
-     * Registers firearm and ammunition data from the asset file in the respective registries.
+     * Registers firearm, ammunition, magazine, and attachment data from the asset file in the respective registries.
+     *
+     * <p>The following data is registered:</p>
+     * <ul>
+     *   <li>Firearm statistics</li>
+     *   <li>Ammunition data</li>
+     *   <li>Magazine data</li>
+     *   <li>Attachment data</li>
+     * </ul>
      *
      * @param itemName      The name of the item associated with the asset.
      * @param combinedAsset The combined asset data.
      */
     private static void registerHFFData(String itemName, JsonObject combinedAsset) {
-        if (combinedAsset.has("Components")) {
-            JsonObject components = combinedAsset.getAsJsonObject("Components");
-            if (components.has("hff:firearm_stats")) {
-                JsonObject statsJson = components.getAsJsonObject("hff:firearm_stats");
+        if (combinedAsset.has("HFF")) {
+            JsonObject hffBlock = combinedAsset.getAsJsonObject("HFF");
+            if (hffBlock.has("firearm_stats")) {
+                JsonObject statsJson = hffBlock.getAsJsonObject("firearm_stats");
                 FirearmStats stats = loadFirearmStats(statsJson);
-                FirearmRegistry.register(itemName, stats);
+                Registries.FIREARM_STATS.register(itemName, stats);
             }
 
-            if (components.has("hff:ammo")) {
-                JsonObject ammoJson = components.getAsJsonObject("hff:ammo");
+            if (hffBlock.has("ammo")) {
+                JsonObject ammoJson = hffBlock.getAsJsonObject("ammo");
                 AmmoData data = loadAmmoData(ammoJson);
-                AmmoRegistry.register(itemName, data);
+                Registries.AMMO_DATA.register(itemName, data);
+            }
+
+            if (hffBlock.has("magazine")) {
+                MagazineData data = loadMagazineData(hffBlock.getAsJsonObject("magazine"));
+                Registries.MAGAZINE_DATA.register(itemName, data);
+            }
+
+            if (hffBlock.has("attachment")) {
+                AttachmentData data = loadAttachmentData(hffBlock.getAsJsonObject("attachment"));
+                Registries.ATTACHMENT_DATA.register(itemName, data);
             }
         }
     }
@@ -217,6 +266,8 @@ public class HFFAssetPackGenerator {
         if (statsJson.has("fireMode")) builder.fireMode(FireMode.valueOf(statsJson.get("fireMode").getAsString()));
         if (statsJson.has("disabled")) builder.disabled(statsJson.get("disabled").getAsBoolean());
         if (statsJson.has("calibre")) builder.calibre(statsJson.get("calibre").getAsString());
+        if (statsJson.has("magazineType"))
+            builder.magazineType(MagazineType.valueOf(statsJson.get("magazineType").getAsString()));
         return builder.build();
     }
 
@@ -236,7 +287,55 @@ public class HFFAssetPackGenerator {
     }
 
     /**
+     * Loads magazine data from a JSON object and creates a {@link MagazineData} object.
+     * This method safely handles missing fields by only setting values that are present in the JSON object.
+     *
+     * @param magazineJson The JSON object containing the magazine data.
+     * @return A {@link MagazineData} object created from the JSON data.
+     */
+    private static MagazineData loadMagazineData(JsonObject magazineJson) {
+        MagazineData.Builder builder = MagazineData.builder();
+        if (magazineJson.has("calibre")) builder.calibre(magazineJson.get("calibre").getAsString());
+        if (magazineJson.has("capacity")) builder.capacity(magazineJson.get("capacity").getAsInt());
+        return builder.build();
+    }
+
+    /**
+     * Loads attachment data from a JSON object and creates an {@link AttachmentData} object.
+     * This method safely handles missing fields by only setting values that are present in the JSON object.
+     *
+     * @param attachmentJson The JSON object containing the attachment data.
+     * @return An {@link AttachmentData} object created from the JSON data.
+     */
+    private static AttachmentData loadAttachmentData(JsonObject attachmentJson) {
+        AttachmentData.Builder builder = AttachmentData.builder();
+        if (attachmentJson.has("type")) builder.type(AttachmentType.valueOf(attachmentJson.get("type").getAsString()));
+        if (attachmentJson.has("recoilMultiplier"))
+            builder.recoilMultiplier(attachmentJson.get("recoilMultiplier").getAsFloat());
+        if (attachmentJson.has("spreadMultiplier"))
+            builder.spreadMultiplier(attachmentJson.get("spreadMultiplier").getAsFloat());
+        if (attachmentJson.has("velocityMultiplier"))
+            builder.velocityMultiplier(attachmentJson.get("velocityMultiplier").getAsFloat());
+        if (attachmentJson.has("reloadTimeMultiplier"))
+            builder.reloadTimeMultiplier(attachmentJson.get("reloadTimeMultiplier").getAsFloat());
+        if (attachmentJson.has("rpmMultiplier"))
+            builder.rpmMultiplier(attachmentJson.get("rpmMultiplier").getAsFloat());
+        if (attachmentJson.has("extraMagazineCapacity"))
+            builder.extraMagazineCapacity(attachmentJson.get("extraMagazineCapacity").getAsInt());
+        return builder.build();
+    }
+
+    /**
      * Copies an asset file from a JAR file to the output ZIP file system.
+     *
+     * <p>The following steps are performed:</p>
+     * <ol>
+     *   <li>Prepends "HFF/" to the entry path.</li>
+     *   <li>Checks if the entry path is valid.</li>
+     *   <li>Finds the asset entry in the JAR file.</li>
+     *   <li>Creates the target directory in the output ZIP file system.</li>
+     *   <li>Copies the asset file to the target path.</li>
+     * </ol>
      *
      * @param zipFs      The file system of the output ZIP file.
      * @param jarFile    The JAR file containing the asset.
@@ -245,7 +344,6 @@ public class HFFAssetPackGenerator {
      * @throws IOException If an error occurs while copying the asset file.
      */
     private static void copyAssetFromJar(FileSystem zipFs, ZipFile jarFile, String entryPath, String targetPath) throws IOException {
-
         entryPath = "HFF/" + entryPath;
 
         if (entryPath == null || entryPath.isEmpty()) {
@@ -273,8 +371,8 @@ public class HFFAssetPackGenerator {
      */
     private static JsonObject removeHFFFields(JsonObject asset) {
         JsonObject cleaned = asset.deepCopy();
-        if (cleaned.has("Components")) {
-            cleaned.remove("Components");
+        if (cleaned.has("HFF")) {
+            cleaned.remove("HFF");
         }
         return cleaned;
     }
