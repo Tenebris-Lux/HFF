@@ -3,54 +3,65 @@ package lucis.lux.hff.data;
 import lucis.lux.hff.enums.FireMode;
 import lucis.lux.hff.enums.FirearmClass;
 import lucis.lux.hff.enums.FirearmType;
+import lucis.lux.hff.enums.MagazineType;
 
 /**
- * The {@code FirearmStats} record represents the statistics and properties of a firearm.
- * This record stores all relevant data for firearm behaviour, such as rate of fire, projectile velocity,
- * recoil, and supported ammunition types.
+ * The {@code FirearmStats} record represents the immutable statistics and properties of a firearm.
+ * This record stores all relevant data for firearm behavior, such as rate of fire, projectile velocity,
+ * recoil, range, and supported ammunition types.
  *
- * <p>This record is immutable and provides a convenient way to store and retrieve firearm statistics.
- * It is typically used in conjunction with firearm components to define the properties and behaviour
- * of firearms in the HFF (Hytale Firearm Framework) plugin.</p>
+ * <p>This record is designed to be used in the HFF (Hytale Firearm Framework) plugin to define the properties
+ * and behavior of firearms. It provides a convenient way to store and retrieve firearm statistics.</p>
  *
  * <p>Example usage:</p>
  * <pre>
- *      FirearmStats stats = FirearmStats.builder()
- *          .reloadTime(2.5f)
- *          .rpm(600.0f)
- *          .projectileVelocity(300.0f)
- *          .projectileAmount(1)
- *          .projectileCapacity(30)
- *          .spreadBase(2.0f)
- *          .movementPenalty(0.5f)
- *          .misfireChance(0.01f)
- *          .jamChance(0.005f)
- *          .verticalRecoil(0.5f)
- *          .horizontalRecoil(0.1f)
- *          .firearmClass(FirearmClass.PISTOL)
- *          .firearmType(FirearmType.HANDGUN)
- *          .fireMode(FireMode.SEMI_AUTOMATIC)
- *          .disabled(false)
- *          .calibre("9mm")
- *          .build();
+ *     // Create a new FirearmStats object using the builder
+ *     FirearmStats stats = FirearmStats.builder()
+ *         .reloadTime(2.5f)
+ *         .rpm(600.0f)
+ *         .projectileVelocity(300.0f)
+ *         .projectileAmount(1)
+ *         .projectileCapacity(30)
+ *         .spreadBase(2.0f)
+ *         .movementPenalty(0.5f)
+ *         .misfireChance(0.01f)
+ *         .jamChance(0.005f)
+ *         .verticalRecoil(0.5f)
+ *         .horizontalRecoil(0.1f)
+ *         .firearmClass(FirearmClass.PISTOL)
+ *         .firearmType(FirearmType.HANDGUN)
+ *         .fireMode(FireMode.SEMI_AUTOMATIC)
+ *         .disabled(false)
+ *         .calibre("9mm")
+ *         .burstRounds(3)
+ *         .optimalRange(20.0f)
+ *         .maxRange(100.0f)
+ *         .minDamageMultiplier(0.2f)
+ *         .magazineType(MagazineType.INTERNAL)
+ *         .build();
  * </pre>
  *
- * @param reloadTime         Time in seconds required to reload the firearm.
- * @param rpm                Rounds per minute (rate of fire).
- * @param projectileVelocity Velocity of the projectile when fired.
- * @param projectileAmount   Number of projectiles fired per shot (e.g., shotgun pellets).
- * @param projectileCapacity Maximum number of projectiles the firearm can hold.
- * @param spreadBase         Base spread of projectiles (in degrees).
- * @param movementPenalty    Penalty to accuracy when moving.
- * @param misfireChance      Chance of the firearm misfiring (0.0 to 1.0).
- * @param jamChance          Chance of the firearm jamming (0.0 to 1.0).
- * @param verticalRecoil     Vertical recoil strength.
- * @param horizontalRecoil   Horizontal recoil strength.
- * @param firearmClass       Historical and mechanical classification of the firearm.
- * @param firearmType        Functional type of the firearm (e.g., handgun, rifle).
- * @param fireMode           Firing mode of the firearm (e.g., semi-automatic, automatic).
- * @param disabled           Whether the HFF mechanics are disabled.
- * @param calibre            The calibre of the ammunition used by the firearm.
+ * @param reloadTime          Time in seconds required to reload the firearm.
+ * @param rpm                 Rounds per minute (rate of fire).
+ * @param projectileVelocity  Velocity of the projectile when fired (in units per second).
+ * @param projectileAmount    Number of projectiles fired per shot (e.g., shotgun pellets).
+ * @param projectileCapacity  Maximum number of projectiles the firearm can hold.
+ * @param spreadBase          Base spread of projectiles (in degrees).
+ * @param movementPenalty     Penalty to accuracy when moving (multiplier for spread).
+ * @param misfireChance       Chance of the firearm misfiring (0.0 to 1.0).
+ * @param jamChance           Chance of the firearm jamming (0.0 to 1.0).
+ * @param verticalRecoil      Vertical recoil strength.
+ * @param horizontalRecoil    Horizontal recoil strength.
+ * @param firearmClass        Historical and mechanical classification of the firearm.
+ * @param firearmType         Functional type of the firearm (e.g., handgun, rifle).
+ * @param fireMode            Firing mode of the firearm (e.g., semi-automatic, automatic).
+ * @param disabled            Whether the HFF mechanics are disabled.
+ * @param calibre             The calibre of the ammunition used by the firearm.
+ * @param burstRounds         Number of rounds fired in burst mode (0 for non-burst fire).
+ * @param optimalRange        Optimal range at which the projectile deals full damage.
+ * @param maxRange            Maximum range at which the projectile can deal damage.
+ * @param minDamageMultiplier Minimum damage multiplier applied at maximum range.
+ * @param magazineType        Type of magazine used by the firearm.
  */
 public record FirearmStats(
         float reloadTime,
@@ -68,11 +79,17 @@ public record FirearmStats(
         FirearmType firearmType,
         FireMode fireMode,
         boolean disabled,
-        String calibre
+        String calibre,
+        int burstRounds,
+        float optimalRange,
+        float maxRange,
+        float minDamageMultiplier,
+        MagazineType magazineType
 ) {
 
     /**
      * Creates a new {@link Builder} instance for constructing a {@code FirearmStats} object.
+     * This is the preferred way to create a new {@code FirearmStats} object.
      *
      * @return A new builder instance.
      */
@@ -82,6 +99,7 @@ public record FirearmStats(
 
     /**
      * Calculates the cooldown time between shots in seconds.
+     * This is derived from the rate of fire (RPM).
      *
      * @return The cooldown time in seconds.
      */
@@ -91,6 +109,7 @@ public record FirearmStats(
 
     /**
      * Creates a new {@link Builder} instance initialized with the values of this {@code FirearmStats} object.
+     * This allows for easy modification of existing firearm statistics.
      *
      * @return A new builder instance initialized with the values of this object.
      */
@@ -111,85 +130,50 @@ public record FirearmStats(
                 .firearmType(this.firearmType)
                 .fireMode(this.fireMode)
                 .disabled(this.disabled)
-                .calibre(this.calibre);
+                .calibre(this.calibre)
+                .burstRounds(this.burstRounds)
+                .optimalRange(this.optimalRange)
+                .maxRange(this.maxRange)
+                .minDamageMultiplier(this.minDamageMultiplier)
+                .magazineType(this.magazineType);
     }
 
     /**
      * The {@code Builder} class provides a fluent interface for constructing {@code FirearmStats} objects.
+     * This allows for easy and readable creation of firearm statistics.
      */
     public static final class Builder {
 
-        /**
-         * Time in seconds required to reload the firearm.
-         */
+        // Default values for the builder
         private float reloadTime = 1.0f;
-        /**
-         * Rounds per minute (rate of fire).
-         */
         private float rpm = 1.0f;
-        /**
-         * Velocity of the projectile when fired.
-         */
         private float projectileVelocity = 1.0f;
-        /**
-         * Number of projectiles fired per shot (e.g., shotgun pellets).
-         */
         private int projectileAmount = 1;
-        /**
-         * Maximum number of projectiles the firearm can hold.
-         */
         private int projectileCapacity = 1;
-        /**
-         * Base spread of projectiles (in degrees).
-         */
         private float spreadBase = 0.0f;
-        /**
-         * Penalty to accuracy when moving.
-         */
         private float movementPenalty = 0.0f;
-        /**
-         * Chance of the firearm misfiring (0.0 to 1.0).
-         */
         private float misfireChance = 0.0f;
-        /**
-         * Chance of the firearm jamming (0.0 to 1.0).
-         */
         private float jamChance = 0.0f;
-        /**
-         * Vertical recoil strength.
-         */
         private float verticalRecoil = 0.0f;
-        /**
-         * Horizontal recoil strength.
-         */
         private float horizontalRecoil = 0.0f;
-        /**
-         * Historical and mechanical classification of the firearm.
-         */
         private FirearmClass firearmClass = FirearmClass.OTHER;
-        /**
-         * Functional type of the firearm (e.g., handgun, rifle).
-         */
         private FirearmType firearmType = FirearmType.OTHER;
-        /**
-         * Firing mode of the firearm (e.g., semi-automatic, automatic).
-         */
         private FireMode fireMode = FireMode.OTHER;
-        /**
-         * Whether the HFF mechanics are disabled.
-         */
         private boolean disabled = false;
-
-        /**
-         * The calibre of the ammunition used by the firearm.
-         */
         private String calibre = "default";
+        private int burstRounds = 0;
+        private float optimalRange = 15.0f;
+        private float maxRange = 50.0f;
+        private float minDamageMultiplier = 0.2f;
+        private MagazineType magazineType = MagazineType.INTERNAL;
 
         /**
          * Constructs a new builder with default values.
          */
         private Builder() {
         }
+
+        // Builder methods for each field
 
         /**
          * Sets the time in seconds required to reload the firearm.
@@ -368,12 +352,89 @@ public record FirearmStats(
         }
 
         /**
+         * Sets the number of rounds fired in burst mode.
+         *
+         * @param burstRounds The number of rounds in burst mode (0 for non-burst fire).
+         * @return This builder instance.
+         */
+        public Builder burstRounds(int burstRounds) {
+            this.burstRounds = burstRounds;
+            return this;
+        }
+
+        /**
+         * Sets the optimal range at which the projectile deals full damage.
+         *
+         * @param optimalRange The optimal range.
+         * @return This builder instance.
+         */
+        public Builder optimalRange(float optimalRange) {
+            this.optimalRange = optimalRange;
+            return this;
+        }
+
+        /**
+         * Sets the maximum range at which the projectile can deal damage.
+         *
+         * @param maxRange The maximum range.
+         * @return This builder instance.
+         */
+        public Builder maxRange(float maxRange) {
+            this.maxRange = maxRange;
+            return this;
+        }
+
+        /**
+         * Sets the minimum damage multiplier applied at maximum range.
+         *
+         * @param minDamageMultiplier The minimum damage multiplier.
+         * @return This builder instance.
+         */
+        public Builder minDamageMultiplier(float minDamageMultiplier) {
+            this.minDamageMultiplier = minDamageMultiplier;
+            return this;
+        }
+
+        /**
+         * Sets the type of magazine used by the firearm.
+         *
+         * @param magazineType The magazine type.
+         * @return This builder instance.
+         */
+        public Builder magazineType(MagazineType magazineType) {
+            this.magazineType = magazineType;
+            return this;
+        }
+
+        /**
          * Builds a new {@code FirearmStats} object with the values set in this builder.
+         * This method finalizes the construction of the firearm statistics.
          *
          * @return A new {@code FirearmStats} object.
          */
         public FirearmStats build() {
-            return new FirearmStats(reloadTime, rpm, projectileVelocity, projectileAmount, projectileCapacity, spreadBase, movementPenalty, misfireChance, jamChance, verticalRecoil, horizontalRecoil, firearmClass, firearmType, fireMode, disabled, calibre);
+            return new FirearmStats(
+                    reloadTime,
+                    rpm,
+                    projectileVelocity,
+                    projectileAmount,
+                    projectileCapacity,
+                    spreadBase,
+                    movementPenalty,
+                    misfireChance,
+                    jamChance,
+                    verticalRecoil,
+                    horizontalRecoil,
+                    firearmClass,
+                    firearmType,
+                    fireMode,
+                    disabled,
+                    calibre,
+                    burstRounds,
+                    optimalRange,
+                    maxRange,
+                    minDamageMultiplier,
+                    magazineType);
         }
     }
 }

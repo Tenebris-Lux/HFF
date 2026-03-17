@@ -25,9 +25,9 @@
       0
     ]
   },
-  "Components": {
-    "hff:firearm_stats": {
-      "reloadTimeSeconds": 2.5,
+  "HFF": {
+    "firearm_stats": {
+      "reloadTime": 2.5,
       "rpm": 600.0,
       "projectileVelocity": 100.0,
       "projectileAmount": 1,
@@ -40,9 +40,13 @@
       "horizontalRecoil": 0.2,
       "firearmClass": "OTHER",
       "firearmType": "OTHER",
-      "fireMode": "OTHER",
+      "fireMode": "MANUAL",
       "disabled": false,
-      "caliber": "default"
+      "calibre": "default",
+      "burstRounds": 0,
+      "optimalRange": 20.0,
+      "maxRange": 50.0,
+      "minDamageMultiplier": 0.01
     }
   },
   "Interactions": {
@@ -50,6 +54,7 @@
       "Interactions": [
         {
           "Type": "hff:check_cooldown",
+          "CancelOnItemChange": true,
           "Next": {
             "Type": "hff:shoot_firearm"
           },
@@ -64,10 +69,28 @@
         }
       ]
     },
-    "Use": {
+    "Ability1": {
       "Interactions": [
         {
-          "Type": "hff:reload"
+          "Type": "hff:openHFFMenu",
+          "CancelOnItemChange": true
+        }
+      ]
+    },
+    "Ability2": {
+      "Interactions": [
+        {
+          "Type": "hff:toggleFireMode",
+          "CancelOnItemChange": true
+        }
+      ]
+    },
+    "Ability3": {
+      "Interactions": [
+        {
+          "Type": "hff:reload",
+          "CancelOnItemChange": true,
+          "HorizontalSpeedMultiplier": 0.5
         }
       ]
     }
