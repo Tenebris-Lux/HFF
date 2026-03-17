@@ -3,7 +3,8 @@ package lucis.lux.hff.listeners;
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.server.core.event.events.entity.LivingEntityInventoryChangeEvent;
 import com.hypixel.hytale.server.core.inventory.ItemStack;
-import lucis.lux.hff.data.FirearmRegistry;
+import lucis.lux.hff.data.FirearmState;
+import lucis.lux.hff.data.registry.Registries;
 
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -17,7 +18,7 @@ import java.util.regex.Pattern;
  * <p>When an inventory change event is detected, this class:</p>
  * <ul>
  *     <li>Parses the event transaction string to determine the affected slot and item ID.</li>
- *     <li>Checks if the item is a registered firearm using the {@link FirearmRegistry}.</li>
+ *     <li>Checks if the item is a registered firearm using the {@link }.</li>
  *     <li>If the item is a firearm and does not already have a UUID, a new UUID is generated and stored in the item's metadata.</li>
  * </ul>
  *
@@ -34,7 +35,7 @@ public class FirearmUuidInitializer {
      * <ol>
      *     <li>Extracts the slot number from the event transaction string using a regular expression.</li>
      *     <li>Extracts the item ID from the event transaction string using a regular expression.</li>
-     *     <li>Checks if the item is a registered firearm using the {@link FirearmRegistry}.</li>
+     *     <li>Checks if the item is a registered firearm using the {@link }.</li>
      *     <li>If the item is a firearm and lacks a UUID, generates a new UUID and stores it in the item's metadata.</li>
      * </ol>
      *
@@ -63,7 +64,7 @@ public class FirearmUuidInitializer {
 
         // Check if the slot and ID are valid and if the item is a firearm
         if (slot >= 0 && id != null) {
-            if (FirearmRegistry.get(id) != null) {
+            if (Registries.FIREARM_STATS.get(id) != null) {
                 ItemStack item = event.getItemContainer().getItemStack(slot);
                 assert item != null;
                 UUID uuid = item.getFromMetadataOrNull("HFF_STATE", Codec.UUID_BINARY);
@@ -72,6 +73,8 @@ public class FirearmUuidInitializer {
                     uuid = UUID.randomUUID();
                     ItemStack newItem = item.withMetadata("HFF_STATE", Codec.UUID_BINARY, uuid);
                     event.getItemContainer().replaceItemStackInSlot(slot, item, newItem);
+
+                    Registries.FIREARM_STATES.register(uuid, new FirearmState());
                 }
             }
         }

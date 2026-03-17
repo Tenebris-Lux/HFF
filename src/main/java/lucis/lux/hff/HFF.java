@@ -16,14 +16,13 @@ import lucis.lux.hff.commands.ShowProjectilesCommand;
 import lucis.lux.hff.commands.ShowUUIDCommand;
 import lucis.lux.hff.components.AimComponent;
 import lucis.lux.hff.components.DamageComponent;
+import lucis.lux.hff.components.HoldingFirearmComponent;
 import lucis.lux.hff.components.ReloadingComponent;
 import lucis.lux.hff.data.HFFAssetPackGenerator;
 import lucis.lux.hff.data.HFFConfig;
-import lucis.lux.hff.events.FirearmAimEvent;
 import lucis.lux.hff.interactions.*;
-import lucis.lux.hff.listeners.CameraAimListener;
 import lucis.lux.hff.listeners.FirearmUuidInitializer;
-import lucis.lux.hff.storage.FirearmStateStorage;
+import lucis.lux.hff.storage.HFFStateStorage;
 import lucis.lux.hff.systems.ReloadSystem;
 
 import javax.annotation.Nonnull;
@@ -80,6 +79,8 @@ public class HFF extends JavaPlugin {
 
     private ComponentType<EntityStore, DamageComponent> damageComponentType;
 
+    private ComponentType<EntityStore, HoldingFirearmComponent> holdingFirearmComponentType;
+
 
     /**
      * Constructs a new instance of the HFF plugin.
@@ -127,6 +128,8 @@ public class HFF extends JavaPlugin {
         this.getCodecRegistry(Interaction.CODEC).register("hff:toggle_aim", ToggleAimInteraction.class, ToggleAimInteraction.CODEC);
         this.getCodecRegistry(Interaction.CODEC).register("hff:reload", ReloadInteraction.class, ReloadInteraction.CODEC);
         this.getCodecRegistry(Interaction.CODEC).register("hff:hitEnemy", HitEnemyInteraction.class, HitEnemyInteraction.CODEC);
+        this.getCodecRegistry(Interaction.CODEC).register("hff:openHFFMenu", OpenMenuInteraction.class, OpenMenuInteraction.CODEC);
+        this.getCodecRegistry(Interaction.CODEC).register("hff:toggleFireMode", ToggleFireModeInteraction.class, ToggleFireModeInteraction.CODEC);
 
         // Register components
 
@@ -137,6 +140,8 @@ public class HFF extends JavaPlugin {
 
         this.damageComponentType = this.getEntityStoreRegistry().registerComponent(DamageComponent.class, "DamageComponent", DamageComponent.CODEC);
 
+        this.holdingFirearmComponentType = this.getEntityStoreRegistry().registerComponent(HoldingFirearmComponent.class, "HoldingFirearmComponent", HoldingFirearmComponent.CODEC);
+
         // Register resources
 
         // Register commands
@@ -146,10 +151,9 @@ public class HFF extends JavaPlugin {
 
         // Register event listeners
         this.getEventRegistry().registerGlobal(LivingEntityInventoryChangeEvent.class, FirearmUuidInitializer::onInventoryChanged);
-        this.getEventRegistry().register(FirearmAimEvent.Post.class, CameraAimListener::onAimStateChanged);
 
         // Load firearm states
-        FirearmStateStorage.loadStates();
+        HFFStateStorage.loadStates();
 
         // Generate Hytale-compatible assets
         try {
@@ -212,6 +216,10 @@ public class HFF extends JavaPlugin {
         return damageComponentType;
     }
 
+    public ComponentType<EntityStore, HoldingFirearmComponent> getHoldingFirearmComponentType() {
+        return holdingFirearmComponentType;
+    }
+
     /**
      * Called when the plugin is started.
      * This method can be used to perform additional initialization tasks.
@@ -227,7 +235,7 @@ public class HFF extends JavaPlugin {
      */
     @Override
     protected void shutdown() {
-        FirearmStateStorage.saveStates();
+        HFFStateStorage.saveStates();
         super.shutdown();
     }
 }

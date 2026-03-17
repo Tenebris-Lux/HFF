@@ -1,0 +1,27 @@
+{
+  "TranslationProperties": {
+    "Name": "server.items.Attachment_RedDot.name"
+  },
+  "Categories": [
+    "Items.HFF.Attachments"
+  ],
+  "Model": "Items/Attachments/Optic/RedDot.blockymodel",
+  "Icon": "Icons/ItemsGenerated/Attachment_RedDot.png",
+  "MaxStack": 1,
+  "Tags": {
+    "Type": [
+      "Attachment"
+    ]
+  },
+  "HFF": {
+    "attachment": {
+      "type": "OPTIC",
+      "recoilMultiplier": 0.9,
+      "spreadMultiplier": 0.85,
+      "velocityMultiplier": 1.0,
+      "reloadTimeMultiplier": 1.05,
+      "rpmMultiplier": 1.0,
+      "extraMagazineCapacity": 0
+    }
+  }
+}

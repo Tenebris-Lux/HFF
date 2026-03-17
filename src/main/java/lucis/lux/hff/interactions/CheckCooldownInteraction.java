@@ -17,10 +17,9 @@ import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Sim
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import lucis.lux.hff.HFF;
-import lucis.lux.hff.data.FirearmRegistry;
 import lucis.lux.hff.data.FirearmState;
-import lucis.lux.hff.data.FirearmStateManager;
 import lucis.lux.hff.data.FirearmStats;
+import lucis.lux.hff.data.registry.Registries;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.UUID;
@@ -32,7 +31,7 @@ import java.util.UUID;
  *
  * <p>This interaction performs the following steps:</p>
  * <ul>
- *     <li>Checks if the firearm is registered at hte {@link FirearmRegistry}. If not, the interaction fails.</li>
+ *     <li>Checks if the firearm is registered at hte {@link }. If not, the interaction fails.</li>
  *     <li>Retrieves the UUID associated with the firearm from its metadata.</li>
  *     <li>Checks if the firearm is on cooldown using the {@link CooldownHandler}.</li>
  *     <li>If the firearm is not on cooldown, it proceeds to the next interaction, typically {@code hff:shoot_firearm}.</li>
@@ -42,8 +41,6 @@ import java.util.UUID;
  * usually used in conjunction with the {@link ShootFirearmInteraction} class.</p>
  *
  * @see ShootFirearmInteraction
- * @see FirearmRegistry
- * @see FirearmStateManager
  */
 public class CheckCooldownInteraction extends SimpleInstantInteraction {
 
@@ -58,7 +55,7 @@ public class CheckCooldownInteraction extends SimpleInstantInteraction {
      *
      * <p>This method performs the following steps:</p>
      * <ol>
-     *     <li>Checks if the firearm is registered at the {@link FirearmRegistry}. If not, the interaction fails.</li>
+     *     <li>Checks if the firearm is registered at the {@link }. If not, the interaction fails.</li>
      *     <li>Retrieves the UUID associated with the firearm from its metadata.</li>
      *     <li>Checks if the firearm is on cooldown using the {@link CooldownHandler}.</li>
      *     <li>If the firearm is not on cooldown, the interaction proceeds to the next step, typically {@code hff:shoot_firearm}.</li>
@@ -79,7 +76,7 @@ public class CheckCooldownInteraction extends SimpleInstantInteraction {
         }
 
         // Retrieve the firearm's statistics
-        FirearmStats stats = FirearmRegistry.get(interactionContext.getHeldItem().getItemId());
+        FirearmStats stats = Registries.FIREARM_STATS.get(interactionContext.getHeldItem().getItemId());
 
         if (stats == null) {
             if (HFF.get().getConfigData().isDebugMode()) {
@@ -108,13 +105,13 @@ public class CheckCooldownInteraction extends SimpleInstantInteraction {
             weaponUuid = UUID.randomUUID();
             interactionContext.setHeldItem(item.withMetadata("HFF_STATE", Codec.UUID_BINARY, weaponUuid));
             player.getInventory().getHotbar().replaceItemStackInSlot(interactionContext.getHeldItemSlot(), item, interactionContext.getHeldItem());
-            FirearmStateManager.registerState(weaponUuid, new FirearmState());
+            Registries.FIREARM_STATES.register(weaponUuid, new FirearmState());
             if (HFF.get().getConfigData().isDebugMode()) {
                 player.sendMessage(Message.raw("Created a new state for the weapon"));
             }
         }
 
         // Proceed to the next interaction if the firearm is not on cooldown
-        this.next = "hff:shoot_firearm";
+        // this.next = "hff:shoot_firearm";
     }
 }

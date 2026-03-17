@@ -3,7 +3,7 @@ package lucis.lux.hff.commands;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncCommand;
-import lucis.lux.hff.data.FirearmRegistry;
+import lucis.lux.hff.data.registry.Registries;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.concurrent.CompletableFuture;
@@ -11,11 +11,11 @@ import java.util.concurrent.CompletableFuture;
 /**
  * The {@code ShowFirearmRegistryCommand} class is an asynchronous command that displays a list of all
  * registered firearms in the game. This command is useful for debugging and verifying that all firearms
- * have been correctly registered in the {@link FirearmRegistry}.
+ * have been correctly registered in the {@link }.
  *
  * <p>When executed, this command:</p>
  * <ul>
- *     <li>Iterates over all entries in the {@link FirearmRegistry}.</li>
+ *     <li>Iterates over all entries in the {@link }.</li>
  *     <li>Sends a message to the command context for each registered firearm, displaying its name.</li>
  * </ul>
  *
@@ -36,7 +36,7 @@ public class ShowFirearmRegistryCommand extends AbstractAsyncCommand {
      *
      * <p>The following steps are performed:</p>
      * <ol>
-     *     <li>Iterates over all entries in the {@link FirearmRegistry}.</li>
+     *     <li>Iterates over all entries in the {@link }.</li>
      *     <li>Sends a message to the command context for each registered firearm, displaying its name.</li>
      * </ol>
      *
@@ -46,7 +46,7 @@ public class ShowFirearmRegistryCommand extends AbstractAsyncCommand {
     @NonNullDecl
     @Override
     protected CompletableFuture<Void> executeAsync(@NonNullDecl CommandContext commandContext) {
-        for (String name : FirearmRegistry.getList().keySet()) {
+        for (String name : Registries.FIREARM_STATS.copy().keySet()) {
             commandContext.sendMessage(Message.raw(name));
         }
         return CompletableFuture.completedFuture(null);

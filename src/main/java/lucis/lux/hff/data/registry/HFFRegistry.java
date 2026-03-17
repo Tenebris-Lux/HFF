@@ -1,5 +1,6 @@
 package lucis.lux.hff.data.registry;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,7 +48,7 @@ import java.util.Map;
  * @param <K> The type of keys maintained by this registry.
  * @param <V> The type of mapped values.
  */
-public class HFFRegistry<K, V> {
+public class HFFRegistry<K, V> implements Serializable {
     /**
      * The internal map that stores the key-value pairs.
      */

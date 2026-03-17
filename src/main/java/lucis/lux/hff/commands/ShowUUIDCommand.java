@@ -10,7 +10,7 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import lucis.lux.hff.data.FirearmStateManager;
+import lucis.lux.hff.data.registry.Registries;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.UUID;
@@ -18,12 +18,12 @@ import java.util.UUID;
 /**
  * The {@code ShowUUIDCommand} class is a player command that displays the UUID of the currently held weapon.
  * This command is useful for debugging and verifying that weapons have been correctly assigned a UUID
- * and that their state is properly registered in the {@link FirearmStateManager}.
+ * and that their state is properly registered in the {@link }.
  *
  * <p>When executed, this command:</p>
  * <ul>
  *   <li>Retrieves the UUID of the currently held weapon from its metadata.</li>
- *   <li>Checks if the weapon's state is registered in the {@link FirearmStateManager}.</li>
+ *   <li>Checks if the weapon's state is registered in the {@link }.</li>
  *   <li>Sends a message to the player with the UUID and registration status of the weapon.</li>
  * </ul>
  *
@@ -46,7 +46,7 @@ public class ShowUUIDCommand extends AbstractPlayerCommand {
      * <ol>
      *   <li>Retrieves the player and their currently held weapon.</li>
      *   <li>Extracts the UUID of the weapon from its metadata.</li>
-     *   <li>Checks if the weapon's state is registered in the {@link FirearmStateManager}.</li>
+     *   <li>Checks if the weapon's state is registered in the {@link }.</li>
      *   <li>Sends a message to the player with the UUID and registration status of the weapon.</li>
      * </ol>
      *
@@ -63,7 +63,7 @@ public class ShowUUIDCommand extends AbstractPlayerCommand {
         boolean registered = false;
 
         if (weaponUuid != null) {
-            registered = FirearmStateManager.getState(weaponUuid) != null;
+            registered = Registries.FIREARM_STATES.get(weaponUuid) != null;
         }
 
         commandContext.sendMessage(Message.raw("UUID: " + weaponUuid + "\nRegistered: " + registered));

@@ -3,7 +3,7 @@ package lucis.lux.hff.commands;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractAsyncCommand;
-import lucis.lux.hff.data.AmmoRegistry;
+import lucis.lux.hff.data.registry.Registries;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.concurrent.CompletableFuture;
@@ -11,11 +11,11 @@ import java.util.concurrent.CompletableFuture;
 /**
  * The {@code ShowProjectilesCommand} class is an asynchronous command that displays a list of all
  * registered projectiles in the game. This command is useful for debugging and verifying that all projectiles
- * have been correctly registered in the {@link AmmoRegistry}.
+ * have been correctly registered in the {@link }.
  *
  * <p>When executed, this command:</p>
  * <ul>
- *   <li>Iterates over all entries in the {@link AmmoRegistry}.</li>
+ *   <li>Iterates over all entries in the {@link }.</li>
  *   <li>Sends a message to the command context for each registered projectile, displaying its name.</li>
  * </ul>
  *
@@ -37,7 +37,7 @@ public class ShowProjectilesCommand extends AbstractAsyncCommand {
      *
      * <p>The following steps are performed:</p>
      * <ol>
-     *   <li>Iterates over all entries in the {@link AmmoRegistry}.</li>
+     *   <li>Iterates over all entries in the {@link }.</li>
      *   <li>Sends a message to the command context for each registered projectile, displaying its name.</li>
      * </ol>
      *
@@ -47,7 +47,7 @@ public class ShowProjectilesCommand extends AbstractAsyncCommand {
     @NonNullDecl
     @Override
     protected CompletableFuture<Void> executeAsync(@NonNullDecl CommandContext commandContext) {
-        for (String name : AmmoRegistry.getList().keySet()) {
+        for (String name : Registries.AMMO_DATA.copy().keySet()) {
             commandContext.sendMessage(Message.raw(name));
         }
         return CompletableFuture.completedFuture(null);
