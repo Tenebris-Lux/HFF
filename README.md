@@ -23,7 +23,7 @@ Instead of relying on heavy ECS entities for inventory items, HFF uses a highly 
 
 | Feature                    | Description                                                            |
 |----------------------------|------------------------------------------------------------------------|
-| **Flyweight Architecture** | Seperates static and dynamic data for optimal memory usage.            |
+| **Flyweight Architecture** | Seperates static and dynamic reloadEventData for optimal memory usage. |
 | **Advanced Ammo System**   | Supports mixed magazines (e.g., alternating tracer/AP rounds).         |
 | **Custom Attachments**     | Modify weapon stats dynamically using built-in record builders.        |
 | **Physics & Ballistics**   | Realistic projectile behaviour, recoil, and spread.                    |
@@ -206,7 +206,7 @@ hff/
 │   │             │ ├── interfaces
 │   │             │ │ └── FirearmAttachment.java
 │   │             │ └── ReloadingComponent.java
-│   │             ├── data
+│   │             ├── reloadEventData
 │   │             │ ├── AmmoData.java
 │   │             │ ├── AmmoRegistry.java
 │   │             │ ├── ConfigManager.java
